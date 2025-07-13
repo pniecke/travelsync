@@ -1,0 +1,261 @@
+openapi: 3.0.3
+info:
+  title: TravelSync API
+  version: 1.0.0
+  description: |
+    ## TravelSync API Documentation
+    This API provides endpoints for managing travel itineraries, including creating, updating, and retrieving travel plans.
+  contact:
+    email: pniecke@gmail.com
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      operationId: getHealth
+      summary: Health check for the TravelSync API
+      responses:
+        '200':
+          description: Health check successful
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "UP"
+
+  /trips/my-trips:
+    get:
+      tags:
+        - Trip
+      operationId: getTripsByLoggedInUser
+      summary: Get Trips for Logged-in User
+      description: Retrieves a list of trips associated with the currently authenticated user.
+      security:
+        - OidcAuth: [ ]
+      responses:
+        '200':
+          description: List of trips for the logged-in user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+        '401':
+          description: Unauthorized - Authentication required
+
+  /trips:
+    post:
+      tags:
+        - Trip
+      operationId: createTrip
+      summary: Create a new trip
+      security:
+        - OidcAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Trip'
+      responses:
+        '201':
+          description: Trip created successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+        '400':
+          description: Bad Request - Invalid trip data
+        '401':
+          description: Unauthorized - Authentication required
+
+  /trips/{id}:
+    put:
+      tags:
+        - Trip
+      operationId: updateTrip
+      summary: Update an existing trip
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the trip to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+      responses:
+        '200':
+          description: Trip updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          description: Bad Request - Invalid trip data
+        '401':
+          description: Unauthorized - Authentication required
+
+  /user/me:
+    get:
+      tags:
+        - User
+      operationId: getLoggedInUser
+      summary: Get the currently logged-in user
+      security:
+        - OidcAuth: [ ]
+      responses:
+        '200':
+          description: Successfully retrieved the logged-in user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - Authentication required
+
+
+components:
+  securitySchemes:
+    OidcAuth:
+      type: openIdConnect
+      openIdConnectUrl: https://accounts.google.com/.well-known/openid-configuration
+      description: >
+        OAuth 2.0 / OpenID Connect authentication via Google. 
+        The ID Token (JWT) issued by Google should be sent as a Bearer token in the Authorization header of requests.
+
+  schemas:
+    Trip:
+      type: object
+      required:
+        - name
+        - destination
+        - startTime
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the trip
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        name:
+          type: string
+          description: Name of the trip
+          example: "Summer Vacation 2025"
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        destination:
+          type: string
+          description: Destination of the trip
+          example: "Sardinia, Italy"
+        startTime:
+          type: string
+          format: local-date-time
+          description: Start time of the trip
+          example: "2025-07-06T10:00:00"
+        endTime:
+          type: string
+          format: local-date-time
+          description: End time of the trip
+          example: "2025-07-20T18:00:00"
+        description:
+          type: string
+          description: Description of the trip
+          example: "A relaxing summer vacation in Sardinia."
+        status:
+          $ref: '#/components/schemas/TripStatus'
+        expenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+
+    User:
+      type: object
+      required:
+        - username
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        password:
+          type: string
+          description: Password of the user
+          example: "securepassword"
+        username:
+          type: string
+          description: Username of the user
+          example: "john_doe"
+        firstName:
+          type: string
+          description: First name of the user
+          example: "John"
+        lastName:
+          type: string
+          description: Last name of the user
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          description: Email address of the user
+          example: "john.doe@sample.ch"
+        mobile:
+          type: string
+          description: Mobile phone number of the user
+          example: "+41 79 123 45 67"
+        locale:
+          type: string
+          format: locale
+          description: Locale of the user
+          example: "en-US"
+
+    Expense:
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: number
+          format: double
+          description: Amount of the expense
+          example: 150.75
+        currency:
+          $ref: '#/components/schemas/Currency'
+
+    Currency:
+      type: string
+      enum: [ CHF, EUR, USD, GBP ]
+      description: Currency code for an expense
+      example: "CHF"
+
+    TripStatus:
+      type: string
+      enum: [ PLANNED, IN_PROGRESS, COMPLETED, CANCELLED ]
+      description: Status of the trip
+      example: "PLANNED"
+
+
+
+
+

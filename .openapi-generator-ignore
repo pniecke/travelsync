@@ -1,0 +1,14 @@
+.gitignore
+.travis.yml
+build.sbt
+gradle/
+gradlew
+gradlew.bat
+pom.xml
+
+**/Exceptions.kt
+**/SpringDocConfiguration.kt
+**/org/
+
+# Prevent test files
+src/test/**

@@ -8,6 +8,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 @Entity
+@Table(name = "user_entity")
 data class UserEntity(
 
     @Id
@@ -21,11 +22,14 @@ data class UserEntity(
     val mobile: String,
     val locale: String,
     @ManyToMany(mappedBy = "participants")
-    val trips: List<TripEntity>,
+    val trips: List<TripEntity>? = null,
     @Enumerated(value = EnumType.STRING)
-    val authProvider: AuthProvider,
+    val authProvider: AuthProvider? = null,
     @Column(nullable = true)
     val externalId: String? = null,
+
+    @OneToMany(mappedBy = "user")
+    val expenses: List<ExpenseEntity>? = null,
 
     @Column(nullable = true, updatable = false)
     @CreationTimestamp

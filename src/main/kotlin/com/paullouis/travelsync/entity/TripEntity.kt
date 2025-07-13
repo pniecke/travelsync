@@ -1,6 +1,6 @@
 package com.paullouis.travelsync.entity
 
-import com.paullouis.travelsync.model.TripStatus
+import com.paullouis.travelsync.model.generated.TripStatus
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 @Entity
-@Table(name = "trips")
+@Table(name = "trip")
 data class TripEntity(
 
     @Id
@@ -30,9 +30,11 @@ data class TripEntity(
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     val status: TripStatus,
-    val expenses: String,
 
-    @Column(nullable = true, updatable = false)
+    @OneToMany(mappedBy =  "trip")
+    val expenses: List<ExpenseEntity>? = null,
+
+    @Column(updatable = false)
     @CreationTimestamp
     val createdAt: LocalDateTime? = null,
     @Column(nullable = true)

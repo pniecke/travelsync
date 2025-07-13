@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 class SpaAuthenticationSuccessHandler : SimpleUrlAuthenticationSuccessHandler() {
     init {
         // after login, always redirect here
-        defaultTargetUrl = "http://localhost:3030/dashboard"
+        defaultTargetUrl = "http://localhost:3000"
         isAlwaysUseDefaultTargetUrl = true
     }
 }

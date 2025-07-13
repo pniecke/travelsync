@@ -2,10 +2,11 @@ package com.paullouis.travelsync.service
 
 import com.paullouis.travelsync.entity.UserEntity
 import com.paullouis.travelsync.model.AuthProvider
-import com.paullouis.travelsync.model.User
+import com.paullouis.travelsync.model.generated.User
 import com.paullouis.travelsync.repository.UserRepository
 import com.paullouis.travelsync.utils.mapper.UserMapper
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.core.oidc.user.OidcUser
 import org.springframework.stereotype.Service
 import java.util.*
@@ -15,6 +16,14 @@ class UserService(
     private val userRepository: UserRepository,
     private val userMapper: UserMapper
 ) : IUserService {
+    override fun getOrCreateUser(): User {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val oidcUser = authentication?.principal as? OidcUser
+            ?: throw IllegalStateException("No authenticated OIDC user found")
+
+        return getOrCreateUser(oidcUser)
+    }
+
     override fun getOrCreateUser(oidcUser: OidcUser): User {
         val googleId = oidcUser.subject
             ?: throw AuthenticationCredentialsNotFoundException("Google ID not found")
@@ -28,7 +37,8 @@ class UserService(
         val username = oidcUser.preferredUsername ?: ""
         val firstName = oidcUser.givenName ?: ""
         val lastName = oidcUser.familyName ?: ""
-        val email = oidcUser.email ?: throw AuthenticationCredentialsNotFoundException("Email not found in OIDC user claims")
+        val email =
+            oidcUser.email ?: throw AuthenticationCredentialsNotFoundException("Email not found in OIDC user claims")
         val locale = oidcUser.locale ?: Locale.GERMAN.language
         val mobile = oidcUser.phoneNumber ?: ""
         val externalId = oidcUser.subject

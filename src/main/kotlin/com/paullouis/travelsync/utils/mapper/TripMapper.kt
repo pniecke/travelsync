@@ -1,7 +1,7 @@
 package com.paullouis.travelsync.utils.mapper
 
 import com.paullouis.travelsync.entity.TripEntity
-import com.paullouis.travelsync.model.Trip
+import com.paullouis.travelsync.model.generated.Trip
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping
 

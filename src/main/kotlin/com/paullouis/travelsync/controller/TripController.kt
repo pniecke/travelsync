@@ -1,41 +1,33 @@
 package com.paullouis.travelsync.controller
 
-import com.paullouis.travelsync.model.Trip
+import com.paullouis.travelsync.model.generated.Trip
 import com.paullouis.travelsync.service.ITripService
-import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.oauth2.core.oidc.user.OidcUser
-import org.springframework.web.bind.annotation.*
+import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RestController
 import java.util.*
 
+
 @RestController
-@RequestMapping("/api/trips")
 class TripController(
     private val tripService: ITripService
-) {
-    @GetMapping
-    fun getAllTrips(): List<Trip> = tripService.getAllTrips()
+) : TripApi {
 
-    @GetMapping("/{id}")
-    fun getTripById(@PathVariable id: String): Trip = tripService.getById(UUID.fromString(id))
-
-    @GetMapping("/my-trips")
-    fun getTripsByLoggedInUser(@AuthenticationPrincipal oidcUser: OidcUser): List<Trip> {
-        return tripService.getTripsByLoggedInUser(oidcUser)
+    override fun getTripsByLoggedInUser(): ResponseEntity<List<Trip>> {
+        return ResponseEntity.ok(tripService.getTripsByLoggedInUser())
     }
 
-
-    @PostMapping
-    fun createTrip(
-        @RequestBody trips: List<Trip>
-    ): List<Trip> {
-        return tripService.createTrips(trips)
+    override fun createTrip(@RequestBody trip: List<Trip>): ResponseEntity<List<Trip>> {
+        return ResponseEntity(tripService.createTrips(trip), HttpStatus.CREATED)
     }
 
-    @PutMapping("/{id}")
-    fun updateTrip(
-        @PathVariable id: String,
-        @RequestBody trip: Trip
-    ): Trip {
-        return tripService.updateTrip(UUID.fromString(id), trip)
+    override fun updateTrip(
+        @PathVariable id: UUID,
+        @Valid @RequestBody trip: Trip
+    ): ResponseEntity<Trip> {
+        return ResponseEntity(tripService.updateTrip(id, trip), HttpStatus.OK)
     }
 }

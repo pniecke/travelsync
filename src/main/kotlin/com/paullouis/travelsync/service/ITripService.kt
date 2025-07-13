@@ -1,7 +1,6 @@
 package com.paullouis.travelsync.service
 
-import com.paullouis.travelsync.model.Trip
-import org.springframework.security.oauth2.core.oidc.user.OidcUser
+import com.paullouis.travelsync.model.generated.Trip
 import java.util.*
 
 interface ITripService {
@@ -15,7 +14,7 @@ interface ITripService {
 
     fun getById(id: UUID): Trip
 
-    fun getTripsByLoggedInUser(oidcUser: OidcUser): List<Trip>
+    fun getTripsByLoggedInUser(): List<Trip>
 
     fun createTrips(trips: List<Trip>): List<Trip>
 
