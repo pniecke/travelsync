@@ -3,6 +3,7 @@ package com.paullouis.travelsync.service
 import com.paullouis.travelsync.entity.UserEntity
 import com.paullouis.travelsync.model.AuthProvider
 import com.paullouis.travelsync.model.generated.User
+import com.paullouis.travelsync.model.generated.UserRole
 import com.paullouis.travelsync.repository.UserRepository
 import com.paullouis.travelsync.utils.mapper.UserMapper
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
@@ -39,7 +40,7 @@ class UserService(
         val lastName = oidcUser.familyName ?: ""
         val email =
             oidcUser.email ?: throw AuthenticationCredentialsNotFoundException("Email not found in OIDC user claims")
-        val locale = oidcUser.locale ?: Locale.GERMAN.language
+        val locale = getUserLocale(oidcUser.locale)
         val mobile = oidcUser.phoneNumber ?: ""
         val externalId = oidcUser.subject
 
@@ -52,7 +53,8 @@ class UserService(
             locale = locale,
             trips = mutableListOf(),
             authProvider = AuthProvider.GOOGLE,
-            externalId = externalId
+            externalId = externalId,
+            roles = setOf(UserRole.USER)
         ).let {
             userRepository.save(it)
             userMapper.toDto(it)
@@ -61,5 +63,13 @@ class UserService(
 
     override fun getAllUsers(): List<User> {
         return userRepository.findAll().map(userMapper::toDto)
+    }
+
+    private fun getUserLocale(stringLocale: String): Locale {
+        return try {
+            Locale.forLanguageTag(stringLocale)
+        } catch (_: Exception) {
+            Locale.GERMAN
+        }
     }
 }

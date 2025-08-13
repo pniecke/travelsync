@@ -1,6 +1,7 @@
 package com.paullouis.travelsync.entity
 
 import com.paullouis.travelsync.model.AuthProvider
+import com.paullouis.travelsync.model.generated.UserRole
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
@@ -20,7 +21,9 @@ data class UserEntity(
     val lastName: String,
     val email: String,
     val mobile: String,
-    val locale: String,
+    val locale: Locale,
+    val roles: Set<UserRole>,
+
     @ManyToMany(mappedBy = "participants")
     val trips: MutableList<TripEntity>? = null,
     @Enumerated(value = EnumType.STRING)

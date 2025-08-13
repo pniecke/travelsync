@@ -6,6 +6,7 @@ import com.paullouis.travelsync.entity.UserEntity
 import com.paullouis.travelsync.model.AuthProvider
 import com.paullouis.travelsync.model.generated.Currency
 import com.paullouis.travelsync.model.generated.TripStatus
+import com.paullouis.travelsync.model.generated.UserRole
 import com.paullouis.travelsync.repository.ExpenseRepository
 import com.paullouis.travelsync.repository.TripRepository
 import com.paullouis.travelsync.repository.UserRepository
@@ -73,12 +74,13 @@ class TestDataInitializer(
             firstName = "Lili Jeanne",
             lastName = "Bösiger",
             mobile = "0612345678",
-            locale = Locale.GERMAN.language,
+            locale = Locale.GERMAN,
             trips = mutableListOf(),
             authProvider = AuthProvider.DATABASE,
             externalId = null,
             expenses = mutableListOf(),
             paidExpenses = mutableListOf(),
+            roles = setOf(UserRole.USER)
         )
     }
 
@@ -90,12 +92,13 @@ class TestDataInitializer(
             firstName = "admin",
             lastName = "admin",
             mobile = "0612345678",
-            locale = Locale.US.language,
+            locale = Locale.US,
             trips = mutableListOf(),
             authProvider = AuthProvider.DATABASE,
             externalId = null,
             expenses = mutableListOf(),
             paidExpenses = mutableListOf(),
+            roles = setOf(UserRole.ADMIN)
         )
     }
 

@@ -293,6 +293,10 @@ components:
           type: string
           description: Last name of the user
           example: "Doe"
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserRole'
         email:
           type: string
           format: email
@@ -364,3 +368,9 @@ components:
       enum: [ PLANNED, IN_PROGRESS, COMPLETED, CANCELLED ]
       description: Status of the trip
       example: "PLANNED"
+
+    UserRole:
+      type: string
+      enum: [ USER, ADMIN ]
+      description: Role of the user
+      example: "USER"

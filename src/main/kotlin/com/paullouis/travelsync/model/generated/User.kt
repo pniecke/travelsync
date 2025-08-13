@@ -2,6 +2,7 @@ package com.paullouis.travelsync.model.generated
 
 import java.util.Objects
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.paullouis.travelsync.model.generated.UserRole
 import io.swagger.v3.oas.annotations.media.Schema
 
 /**
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema
  * @param password Password of the user
  * @param firstName First name of the user
  * @param lastName Last name of the user
+ * @param roles 
  * @param email Email address of the user
  * @param mobile Mobile phone number of the user
  * @param locale Locale of the user
@@ -31,6 +33,9 @@ data class User(
 
     @Schema(example = "Doe", description = "Last name of the user")
     @get:JsonProperty("lastName") val lastName: kotlin.String? = null,
+
+    @Schema(example = "null", description = "")
+    @get:JsonProperty("roles") val roles: kotlin.collections.List<UserRole>? = null,
 
     @Schema(example = "john.doe@sample.ch", description = "Email address of the user")
     @get:JsonProperty("email") val email: kotlin.String? = null,

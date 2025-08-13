@@ -13,6 +13,13 @@
  */
 
 import { exists, mapValues } from '../runtime';
+import type { UserRole } from './UserRole';
+import {
+    UserRoleFromJSON,
+    UserRoleFromJSONTyped,
+    UserRoleToJSON,
+} from './UserRole';
+
 /**
  * 
  * @export
@@ -49,6 +56,12 @@ export interface User {
      * @memberof User
      */
     lastName?: string;
+    /**
+     * 
+     * @type {Array<UserRole>}
+     * @memberof User
+     */
+    roles?: Array<UserRole>;
     /**
      * Email address of the user
      * @type {string}
@@ -94,6 +107,7 @@ export function UserFromJSONTyped(json: any, ignoreDiscriminator: boolean): User
         'username': json['username'],
         'firstName': !exists(json, 'firstName') ? undefined : json['firstName'],
         'lastName': !exists(json, 'lastName') ? undefined : json['lastName'],
+        'roles': !exists(json, 'roles') ? undefined : ((json['roles'] as Array<any>).map(UserRoleFromJSON)),
         'email': !exists(json, 'email') ? undefined : json['email'],
         'mobile': !exists(json, 'mobile') ? undefined : json['mobile'],
         'locale': !exists(json, 'locale') ? undefined : json['locale'],
@@ -114,6 +128,7 @@ export function UserToJSON(value?: User | null): any {
         'username': value.username,
         'firstName': value.firstName,
         'lastName': value.lastName,
+        'roles': value.roles === undefined ? undefined : ((value.roles as Array<any>).map(UserRoleToJSON)),
         'email': value.email,
         'mobile': value.mobile,
         'locale': value.locale,

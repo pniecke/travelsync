@@ -4,4 +4,5 @@ models/Expense.ts
 models/Trip.ts
 models/TripStatus.ts
 models/User.ts
+models/UserRole.ts
 runtime.ts
