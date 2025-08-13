@@ -13,11 +13,11 @@ import io.swagger.v3.oas.annotations.media.Schema
  * @param currency 
  * @param createdBy 
  * @param tripId Unique identifier of the trip associated with the expense
- * @param date Date of the expense
  * @param id Unique identifier for the expense
  * @param description Description of the expense
  * @param lastModified Last modified date and time of the expense
  * @param paidBy 
+ * @param dateOfExpense Date of the expense
  */
 data class Expense(
 
@@ -33,9 +33,6 @@ data class Expense(
     @Schema(example = "a1b2c3d4-e5f6-7890-1234-567890abcdef", required = true, description = "Unique identifier of the trip associated with the expense")
     @get:JsonProperty("tripId", required = true) val tripId: java.util.UUID,
 
-    @Schema(example = "2025-07-10T15:30:00", required = true, description = "Date of the expense")
-    @get:JsonProperty("date", required = true) val date: java.time.LocalDateTime,
-
     @Schema(example = "a1b2c3d4-e5f6-7890-1234-567890abcdef", description = "Unique identifier for the expense")
     @get:JsonProperty("id") val id: java.util.UUID? = null,
 
@@ -46,7 +43,10 @@ data class Expense(
     @get:JsonProperty("lastModified") val lastModified: java.time.LocalDateTime? = null,
 
     @Schema(example = "null", description = "")
-    @get:JsonProperty("paidBy") val paidBy: User? = null
+    @get:JsonProperty("paidBy") val paidBy: User? = null,
+
+    @Schema(example = "2025-07-10T15:30:00", description = "Date of the expense")
+    @get:JsonProperty("dateOfExpense") val dateOfExpense: java.time.LocalDateTime? = null
 ) {
 
 }

@@ -12,5 +12,10 @@ interface UserMapper {
 
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "trips", ignore = true)
+    @Mapping(target = "expenses", ignore = true)
+    @Mapping(target = "paidExpenses", ignore = true)
+    @Mapping(target = "authProvider", ignore = true)
+    @Mapping(target = "externalId", ignore = true)
     fun toEntity(user: User): UserEntity
 }

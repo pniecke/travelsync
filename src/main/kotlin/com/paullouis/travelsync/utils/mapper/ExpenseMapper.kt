@@ -11,11 +11,20 @@ import org.mapstruct.Mapping
 interface ExpenseMapper {
 
     @Mapping(target = "tripId", source = "expenseEntity.trip.id")
+    @Mapping(
+        target = "lastModified",
+        expression = "java(expenseEntity.getUpdatedAt() != null ? expenseEntity.getUpdatedAt() : expenseEntity.getCreatedAt())"
+    )
     fun toDto(expenseEntity: ExpenseEntity): Expense
 
-    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "id", source = "expense.id")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "description", source = "expense.description")
     fun toEntity(expense: Expense, createdBy: UserEntity, trip: TripEntity): ExpenseEntity
+
+    @Mapping(target = "trip", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    fun toEntity(expense: Expense): ExpenseEntity
 }

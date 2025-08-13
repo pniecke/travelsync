@@ -40,16 +40,16 @@ class TestDataInitializer(
         }
 
         var expense1 = getExpense("Ferry to Sardinia", 400.0, trip1, user1, user2)
-        var expense2 = getExpense("AirBnB", 4000.0, trip1, user2, null)
+        val expense2 = getExpense("AirBnB", 4000.0, trip1, user2, null)
         if (expenseRepository.count() == 0L) {
             expense1 = expenseRepository.save(expense1)
-            expense2 = expenseRepository.save(expense2)
+            expenseRepository.save(expense2)
         } else {
             expense1 = expenseRepository.findById(
                 expense1.id
                     ?: UUID.randomUUID()
             ).orElse(expense1)
-            expense2 = expenseRepository.findById(
+            expenseRepository.findById(
                 expense2.id
                     ?: UUID.randomUUID()
             ).orElse(expense2)
@@ -126,7 +126,7 @@ class TestDataInitializer(
             currency = Currency.CHF,
             createdBy = createdBy,
             paidBy = paidBy,
-            date = LocalDateTime.now()
+            dateOfExpense = LocalDateTime.now()
         )
     }
 }

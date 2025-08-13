@@ -35,7 +35,7 @@ data class ExpenseEntity(
     val paidBy: UserEntity? = null,
 
     @Column(nullable = false)
-    val date: LocalDateTime,
+    val dateOfExpense: LocalDateTime,
 
     @Column(updatable = false)
     @CreationTimestamp

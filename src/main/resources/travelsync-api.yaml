@@ -347,7 +347,7 @@ components:
           format: uuid
           description: Unique identifier of the trip associated with the expense
           example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-        date:
+        dateOfExpense:
           type: string
           format: local-date-time
           description: Date of the expense

@@ -85,7 +85,7 @@ export interface Expense {
      * @type {string}
      * @memberof Expense
      */
-    date: string;
+    dateOfExpense?: string;
 }
 
 /**
@@ -97,7 +97,6 @@ export function instanceOfExpense(value: object): boolean {
     isInstance = isInstance && "currency" in value;
     isInstance = isInstance && "createdBy" in value;
     isInstance = isInstance && "tripId" in value;
-    isInstance = isInstance && "date" in value;
 
     return isInstance;
 }
@@ -120,7 +119,7 @@ export function ExpenseFromJSONTyped(json: any, ignoreDiscriminator: boolean): E
         'createdBy': UserFromJSON(json['createdBy']),
         'paidBy': !exists(json, 'paidBy') ? undefined : UserFromJSON(json['paidBy']),
         'tripId': json['tripId'],
-        'date': json['date'],
+        'dateOfExpense': !exists(json, 'dateOfExpense') ? undefined : json['dateOfExpense'],
     };
 }
 
@@ -141,7 +140,7 @@ export function ExpenseToJSON(value?: Expense | null): any {
         'createdBy': UserToJSON(value.createdBy),
         'paidBy': UserToJSON(value.paidBy),
         'tripId': value.tripId,
-        'date': value.date,
+        'dateOfExpense': value.dateOfExpense,
     };
 }
 
