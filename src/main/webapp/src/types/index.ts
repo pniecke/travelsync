@@ -1,7 +1,4 @@
-export interface AuthFormData {
-    email: string;
-    password: string;
-    rememberMe?: boolean;
-    name?: string;
-    confirmPassword?: string;
-}
+/* tslint:disable */
+/* eslint-disable */
+export * from './runtime';
+export * from './models';

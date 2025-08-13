@@ -19,6 +19,12 @@ import {
     CurrencyFromJSONTyped,
     CurrencyToJSON,
 } from './Currency';
+import type { User } from './User';
+import {
+    UserFromJSON,
+    UserFromJSONTyped,
+    UserToJSON,
+} from './User';
 
 /**
  * 
@@ -26,6 +32,18 @@ import {
  * @interface Expense
  */
 export interface Expense {
+    /**
+     * Unique identifier for the expense
+     * @type {string}
+     * @memberof Expense
+     */
+    id?: string;
+    /**
+     * Description of the expense
+     * @type {string}
+     * @memberof Expense
+     */
+    description?: string;
     /**
      * Amount of the expense
      * @type {number}
@@ -38,6 +56,36 @@ export interface Expense {
      * @memberof Expense
      */
     currency: Currency;
+    /**
+     * Last modified date and time of the expense
+     * @type {string}
+     * @memberof Expense
+     */
+    lastModified?: string;
+    /**
+     * 
+     * @type {User}
+     * @memberof Expense
+     */
+    createdBy: User;
+    /**
+     * 
+     * @type {User}
+     * @memberof Expense
+     */
+    paidBy?: User;
+    /**
+     * Unique identifier of the trip associated with the expense
+     * @type {string}
+     * @memberof Expense
+     */
+    tripId: string;
+    /**
+     * Date of the expense
+     * @type {string}
+     * @memberof Expense
+     */
+    date: string;
 }
 
 /**
@@ -47,6 +95,9 @@ export function instanceOfExpense(value: object): boolean {
     let isInstance = true;
     isInstance = isInstance && "amount" in value;
     isInstance = isInstance && "currency" in value;
+    isInstance = isInstance && "createdBy" in value;
+    isInstance = isInstance && "tripId" in value;
+    isInstance = isInstance && "date" in value;
 
     return isInstance;
 }
@@ -61,8 +112,15 @@ export function ExpenseFromJSONTyped(json: any, ignoreDiscriminator: boolean): E
     }
     return {
         
+        'id': !exists(json, 'id') ? undefined : json['id'],
+        'description': !exists(json, 'description') ? undefined : json['description'],
         'amount': json['amount'],
         'currency': CurrencyFromJSON(json['currency']),
+        'lastModified': !exists(json, 'lastModified') ? undefined : json['lastModified'],
+        'createdBy': UserFromJSON(json['createdBy']),
+        'paidBy': !exists(json, 'paidBy') ? undefined : UserFromJSON(json['paidBy']),
+        'tripId': json['tripId'],
+        'date': json['date'],
     };
 }
 
@@ -75,8 +133,15 @@ export function ExpenseToJSON(value?: Expense | null): any {
     }
     return {
         
+        'id': value.id,
+        'description': value.description,
         'amount': value.amount,
         'currency': CurrencyToJSON(value.currency),
+        'lastModified': value.lastModified,
+        'createdBy': UserToJSON(value.createdBy),
+        'paidBy': UserToJSON(value.paidBy),
+        'tripId': value.tripId,
+        'date': value.date,
     };
 }
 

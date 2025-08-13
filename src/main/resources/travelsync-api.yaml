@@ -113,6 +113,66 @@ paths:
         '401':
           description: Unauthorized - Authentication required
 
+  /expenses:
+    get:
+      tags:
+        - Expense
+      operationId: getExpenses
+      summary: Get expenses with optional filtering
+      description: Returns a list of expenses, optionally filtered by creator or payer
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: createdBy
+          in: query
+          description: When true, return only expenses created by the current user
+          required: false
+          schema:
+            type: boolean
+        - name: paidBy
+          in: query
+          description: When true, return only expenses paid by the current user
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Expense'
+    post:
+      tags:
+        - Expense
+      operationId: createExpense
+      summary: Create a new expense
+      security:
+        - OidcAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Expense'
+      responses:
+        '201':
+          description: Expense created successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Expense'
+        '400':
+          description: Bad Request - Invalid expense data
+        '401':
+          description: Unauthorized - Authentication required
+
   /user/me:
     get:
       tags:
@@ -131,6 +191,25 @@ paths:
         '401':
           description: Unauthorized - Authentication required
 
+  /users:
+    get:
+      tags:
+        - User
+      operationId: getAllUsers
+      summary: Get all users
+      security:
+        - OidcAuth: [ ]
+      responses:
+        '200':
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - Authentication required
 
 components:
   securitySchemes:
@@ -145,10 +224,10 @@ components:
     Trip:
       type: object
       required:
-        - name
         - destination
         - startTime
         - status
+        - participants
       properties:
         id:
           type: string
@@ -234,7 +313,19 @@ components:
       required:
         - amount
         - currency
+        - tripId
+        - createdBy
+        - date
       properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the expense
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        description:
+          type: string
+          description: Description of the expense
+          example: "Hotel accommodation"
         amount:
           type: number
           format: double
@@ -242,6 +333,25 @@ components:
           example: 150.75
         currency:
           $ref: '#/components/schemas/Currency'
+        lastModified:
+          type: string
+          format: local-date-time
+          description: Last modified date and time of the expense
+          example: "2025-07-10T15:30:00"
+        createdBy:
+          $ref: '#/components/schemas/User'
+        paidBy:
+          $ref: '#/components/schemas/User'
+        tripId:
+          type: string
+          format: uuid
+          description: Unique identifier of the trip associated with the expense
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        date:
+          type: string
+          format: local-date-time
+          description: Date of the expense
+          example: "2025-07-10T15:30:00"
 
     Currency:
       type: string
@@ -254,8 +364,3 @@ components:
       enum: [ PLANNED, IN_PROGRESS, COMPLETED, CANCELLED ]
       description: Status of the trip
       example: "PLANNED"
-
-
-
-
-

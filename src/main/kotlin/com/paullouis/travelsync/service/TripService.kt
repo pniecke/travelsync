@@ -48,10 +48,10 @@ class TripService(
         val existingTripEntity: TripEntity =
             tripRepository.findById(id).orElse(null) // TODO: throw not found exception (or maybe 409 conflict)
         val participantEntities: List<UserEntity> =
-            trip.participants?.map { userMapper.toEntity(it) } ?: existingTripEntity.participants
+            trip.participants.map { userMapper.toEntity(it) }
         var updatedTrip = existingTripEntity.copy(
             name = trip.name,
-            participants = participantEntities,
+            participants = participantEntities.toMutableList(),
             startTime = trip.startTime,
             endTime = trip.endTime ?: existingTripEntity.endTime,
             destination = trip.destination,

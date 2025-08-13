@@ -1,8 +1,10 @@
-import {AuthFormData} from "@/types";
 import {ChevronLeft, ChevronRight, Eye, EyeOff, FolderSyncIcon as Sync, Plane} from "lucide-react"
-import React, {useState} from "react";
-import {Link} from "react-router-dom";
+import React, {useEffect, useState} from "react";
 import {AnimatedBackground} from "@/components/AnimatedBackground";
+import Link from "next/link";
+import {AuthFormData} from "@/types/models/AuthFormData";
+import {useAuth} from "@/context/AuthProvider";
+import {useRouter} from "next/router";
 
 interface SignupFormData extends AuthFormData {
     confirmPassword: string;
@@ -11,7 +13,16 @@ interface SignupFormData extends AuthFormData {
     interests: string[];
 }
 
-export const SignupPage: React.FC = () => {
+export const Signup: React.FC = () => {
+    const {user, loading} = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && user) {
+            router.replace('/dashboard')
+        }
+    }, [user, loading, router]);
+
     const [currentStep, setCurrentStep] = React.useState(1);
     const [formData, setFormData] = useState<SignupFormData>({
         email: '',
@@ -50,8 +61,21 @@ export const SignupPage: React.FC = () => {
                 : [...prev.interests, interest],
         }))
     }
-    const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 3))
-    const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1))
+
+    const nextStep = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCurrentStep((prev) => Math.min(prev + 1, 3));
+    }
+
+    const prevStep = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCurrentStep((prev) => Math.max(prev - 1, 1));
+    }
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Handle form submission
+    }
 
     const interests = [
         "Adventure",
@@ -90,7 +114,7 @@ export const SignupPage: React.FC = () => {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800"
                                 required
                             />
                         </div>
@@ -106,7 +130,7 @@ export const SignupPage: React.FC = () => {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleInputChange}
-                                    className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800"
                                     required
                                 />
                                 <button
@@ -148,7 +172,7 @@ export const SignupPage: React.FC = () => {
                                 name="confirmPassword"
                                 value={formData.confirmPassword}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800"
                                 required
                             />
                             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
@@ -171,7 +195,7 @@ export const SignupPage: React.FC = () => {
                                 name="name"
                                 value={formData.name}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800"
                                 required
                             />
                         </div>
@@ -186,7 +210,7 @@ export const SignupPage: React.FC = () => {
                                 value={formData.bio}
                                 onChange={handleInputChange}
                                 rows={3}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none text-slate-800"
                                 placeholder="Tell us a bit about yourself..."
                             />
                         </div>
@@ -227,6 +251,8 @@ export const SignupPage: React.FC = () => {
         }
     }
 
+    if (loading) return <p>Loading...</p>
+
     return (
         <div className="min-h-screen flex items-center justify-center relative">
             <AnimatedBackground/>
@@ -262,7 +288,7 @@ export const SignupPage: React.FC = () => {
                     </div>
 
                     {/* Step Content */}
-                    <form className="space-y-6">
+                    <form onSubmit={currentStep === 3 ? handleSubmit : nextStep} className="space-y-6">
                         {renderStep()}
 
                         {/* Navigation Buttons */}
@@ -282,8 +308,7 @@ export const SignupPage: React.FC = () => {
 
                             {currentStep < 3 ? (
                                 <button
-                                    type="button"
-                                    onClick={nextStep}
+                                    type="submit"
                                     className="flex items-center px-6 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
                                 >
                                     Next
@@ -303,7 +328,7 @@ export const SignupPage: React.FC = () => {
                     <div className="mt-6 text-center">
                         <p className="text-sm text-slate-600">
                             Already have an account?{" "}
-                            <Link to="/login" className="text-sky-500 hover:text-sky-600 font-medium">
+                            <Link href="/login" className="text-sky-500 hover:text-sky-600 font-medium">
                                 Sign in
                             </Link>
                         </p>
@@ -313,3 +338,5 @@ export const SignupPage: React.FC = () => {
         </div>
     )
 }
+
+export default Signup;

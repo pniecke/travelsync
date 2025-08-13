@@ -58,4 +58,8 @@ class UserService(
             userMapper.toDto(it)
         }
     }
+
+    override fun getAllUsers(): List<User> {
+        return userRepository.findAll().map(userMapper::toDto)
+    }
 }

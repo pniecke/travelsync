@@ -10,20 +10,20 @@ import io.swagger.v3.oas.annotations.media.Schema
 
 /**
  * 
- * @param name Name of the trip
+ * @param participants 
  * @param destination Destination of the trip
  * @param startTime Start time of the trip
  * @param status 
  * @param id Unique identifier for the trip
- * @param participants 
+ * @param name Name of the trip
  * @param endTime End time of the trip
  * @param description Description of the trip
  * @param expenses 
  */
 data class Trip(
 
-    @Schema(example = "Summer Vacation 2025", required = true, description = "Name of the trip")
-    @get:JsonProperty("name", required = true) val name: kotlin.String,
+    @Schema(example = "null", required = true, description = "")
+    @get:JsonProperty("participants", required = true) val participants: kotlin.collections.List<User>,
 
     @Schema(example = "Sardinia, Italy", required = true, description = "Destination of the trip")
     @get:JsonProperty("destination", required = true) val destination: kotlin.String,
@@ -37,8 +37,8 @@ data class Trip(
     @Schema(example = "a1b2c3d4-e5f6-7890-1234-567890abcdef", description = "Unique identifier for the trip")
     @get:JsonProperty("id") val id: java.util.UUID? = null,
 
-    @Schema(example = "null", description = "")
-    @get:JsonProperty("participants") val participants: kotlin.collections.List<User>? = null,
+    @Schema(example = "Summer Vacation 2025", description = "Name of the trip")
+    @get:JsonProperty("name") val name: kotlin.String? = null,
 
     @Schema(example = "2025-07-20T18:00:00", description = "End time of the trip")
     @get:JsonProperty("endTime") val endTime: java.time.LocalDateTime? = null,

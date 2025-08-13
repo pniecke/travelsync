@@ -257,7 +257,7 @@
                             <output>${project.basedir}/src/main/webapp/src/types</output>
                             <generateApis>false</generateApis>
                             <generateModels>true</generateModels>
-                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <generateSupportingFiles>true</generateSupportingFiles>
                             <skipOverwrite>false</skipOverwrite>
                             <configOptions>
                                 <modelPropertyNaming>camelCase</modelPropertyNaming>

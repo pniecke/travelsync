@@ -22,14 +22,17 @@ data class UserEntity(
     val mobile: String,
     val locale: String,
     @ManyToMany(mappedBy = "participants")
-    val trips: List<TripEntity>? = null,
+    val trips: MutableList<TripEntity>? = null,
     @Enumerated(value = EnumType.STRING)
     val authProvider: AuthProvider? = null,
     @Column(nullable = true)
     val externalId: String? = null,
 
-    @OneToMany(mappedBy = "user")
-    val expenses: List<ExpenseEntity>? = null,
+    @OneToMany(mappedBy = "createdBy")
+    val expenses: MutableList<ExpenseEntity>? = null,
+
+    @OneToMany(mappedBy = "paidBy")
+    val paidExpenses: MutableList<ExpenseEntity>? = null,
 
     @Column(nullable = true, updatable = false)
     @CreationTimestamp

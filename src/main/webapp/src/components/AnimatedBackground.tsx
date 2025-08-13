@@ -2,12 +2,12 @@ import type React from "react"
 
 export const AnimatedBackground: React.FC = () => {
     return (
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden -z-10 bg-gray-900"> {/* Changed to dark gray */}
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
                 <defs>
                     <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.1" />
-                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.05" />
+                        <stop offset="0%" stopColor="#1e40af" stopOpacity="0.3" /> {/* blue-800 */}
+                        <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.2" /> {/* blue-900 */}
                     </linearGradient>
                 </defs>
                 <path
@@ -19,9 +19,10 @@ export const AnimatedBackground: React.FC = () => {
                     d="M0,500 C300,400 600,600 900,500 C1050,450 1200,500 1200,500 L1200,800 L0,800 Z"
                     fill="url(#wave-gradient)"
                     className="animate-pulse"
-                    style={{ animationDelay: "1s" }}
+                    style={{ animationDelay: "2s", opacity: 0.7 }}
                 />
             </svg>
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-gray-800 opacity-90" /> {/* Dark overlay */}
         </div>
     )
 }

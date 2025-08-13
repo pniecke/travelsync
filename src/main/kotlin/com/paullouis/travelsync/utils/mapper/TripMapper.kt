@@ -5,7 +5,7 @@ import com.paullouis.travelsync.model.generated.Trip
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping
 
-@Mapper(componentModel = "spring", uses = [UserMapper::class])
+@Mapper(componentModel = "spring", uses = [UserMapper::class, ExpenseMapper::class])
 interface TripMapper {
 
     fun toDto(tripEntity: TripEntity): Trip

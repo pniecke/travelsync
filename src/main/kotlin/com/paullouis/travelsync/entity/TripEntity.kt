@@ -15,24 +15,24 @@ data class TripEntity(
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "UUID", nullable = false, updatable = false)
     val id: UUID? = null,
-    val name: String,
+    val name: String? = null,
     @ManyToMany
     @JoinTable(
         name = "trip_participants",
         joinColumns = [JoinColumn(name = "trip_id")],
         inverseJoinColumns = [JoinColumn(name = "user_id")]
     )
-    val participants: List<UserEntity>,
+    val participants: MutableList<UserEntity>,
     val startTime: LocalDateTime,
-    val endTime: LocalDateTime,
+    val endTime: LocalDateTime? = null,
     val destination: String,
-    val description: String,
+    val description: String? = null,
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     val status: TripStatus,
 
-    @OneToMany(mappedBy =  "trip")
-    val expenses: List<ExpenseEntity>? = null,
+    @OneToMany(mappedBy = "trip")
+    val expenses: MutableList<ExpenseEntity>? = null,
 
     @Column(updatable = false)
     @CreationTimestamp

@@ -49,13 +49,13 @@ export interface Trip {
      * @type {string}
      * @memberof Trip
      */
-    name: string;
+    name?: string;
     /**
      * 
      * @type {Array<User>}
      * @memberof Trip
      */
-    participants?: Array<User>;
+    participants: Array<User>;
     /**
      * Destination of the trip
      * @type {string}
@@ -99,7 +99,7 @@ export interface Trip {
  */
 export function instanceOfTrip(value: object): boolean {
     let isInstance = true;
-    isInstance = isInstance && "name" in value;
+    isInstance = isInstance && "participants" in value;
     isInstance = isInstance && "destination" in value;
     isInstance = isInstance && "startTime" in value;
     isInstance = isInstance && "status" in value;
@@ -118,8 +118,8 @@ export function TripFromJSONTyped(json: any, ignoreDiscriminator: boolean): Trip
     return {
         
         'id': !exists(json, 'id') ? undefined : json['id'],
-        'name': json['name'],
-        'participants': !exists(json, 'participants') ? undefined : ((json['participants'] as Array<any>).map(UserFromJSON)),
+        'name': !exists(json, 'name') ? undefined : json['name'],
+        'participants': ((json['participants'] as Array<any>).map(UserFromJSON)),
         'destination': json['destination'],
         'startTime': json['startTime'],
         'endTime': !exists(json, 'endTime') ? undefined : json['endTime'],
@@ -140,7 +140,7 @@ export function TripToJSON(value?: Trip | null): any {
         
         'id': value.id,
         'name': value.name,
-        'participants': value.participants === undefined ? undefined : ((value.participants as Array<any>).map(UserToJSON)),
+        'participants': ((value.participants as Array<any>).map(UserToJSON)),
         'destination': value.destination,
         'startTime': value.startTime,
         'endTime': value.endTime,

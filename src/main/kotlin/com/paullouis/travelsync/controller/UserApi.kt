@@ -27,6 +27,25 @@ import kotlin.collections.Map
 interface UserApi {
 
     @Operation(
+        summary = "Get all users",
+        operationId = "getAllUsers",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "List of all users", content = [Content(schema = Schema(implementation = User::class))]),
+            ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.GET],
+            value = ["/users"],
+            produces = ["application/json"]
+    )
+    fun getAllUsers(): ResponseEntity<List<User>> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
         summary = "Get the currently logged-in user",
         operationId = "getLoggedInUser",
         description = """""",

@@ -9,4 +9,6 @@ import java.util.*
 interface UserRepository : CrudRepository<UserEntity, UUID> {
 
     fun findByExternalId(externalId: String): UserEntity?
+
+    fun findByUsername(username: String): UserEntity?
 }

@@ -8,4 +8,6 @@ interface IUserService {
     fun getOrCreateUser(oidcUser: OidcUser): User
 
     fun getOrCreateUser(): User
+
+    fun getAllUsers(): List<User>
 }
