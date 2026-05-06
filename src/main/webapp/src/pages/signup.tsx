@@ -5,6 +5,9 @@ import Link from "next/link";
 import {AuthFormData} from "@/types/models/AuthFormData";
 import {useAuth} from "@/context/AuthProvider";
 import {useRouter} from "next/router";
+import apiClient, {ensureCsrf} from "@/services/apiClient";
+import {SignUpRequest} from "@/types/models/SignUpRequest";
+import {AxiosError} from "axios";
 
 interface SignupFormData extends AuthFormData {
     confirmPassword: string;
@@ -64,6 +67,18 @@ export const Signup: React.FC = () => {
 
     const nextStep = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (currentStep === 1) {
+            if (formData.password.length < 8) {
+                alert("Password must be at least 8 characters long.");
+                return;
+            }
+            if (formData.password !== formData.confirmPassword) {
+                alert("Passwords do not match.");
+                return;
+            }
+        }
+
         setCurrentStep((prev) => Math.min(prev + 1, 3));
     }
 
@@ -72,9 +87,38 @@ export const Signup: React.FC = () => {
         setCurrentStep((prev) => Math.max(prev - 1, 1));
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle form submission
+        if (formData.password !== formData.confirmPassword) {
+            alert("Passwords do not match!");
+            return;
+        }
+
+        const signUpRequest: SignUpRequest = {
+            username: formData.name,
+            password: formData.confirmPassword,
+            email: formData.email,
+        }
+
+        try {
+            await ensureCsrf();
+            await apiClient.post('/auth/signup', signUpRequest);
+            alert("Account created successfully! Please sign in.");
+            router.replace('/login');
+        } catch (err: unknown) {
+            if (err instanceof AxiosError) {
+                const errorMessage = err?.response?.data?.error;
+                if (err?.response?.status === 409) {
+                    alert(errorMessage || "A user with that email or username already exists.");
+                } else if (err?.response?.status === 400) {
+                    alert(errorMessage || "Invalid input. Please check your information.");
+                } else {
+                    alert("Sign up failed. Please try again.");
+                }
+            } else {
+                alert("Sign up failed. Please try again.");
+            }
+        }
     }
 
     const interests = [
@@ -176,7 +220,7 @@ export const Signup: React.FC = () => {
                                 required
                             />
                             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                                <p className="text-red-500 text-xs mt-1">Passwords don't match</p>
+                                <p className="text-red-500 text-xs mt-1">Passwords don&#39;t match</p>
                             )}
                         </div>
                     </div>

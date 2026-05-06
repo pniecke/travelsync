@@ -1,56 +1,142 @@
 package com.paullouis.travelsync.config
 
 import com.paullouis.travelsync.service.CustomOidcUserService
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
+import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.core.userdetails.UserDetailsService
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
 import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.CorsConfigurationSource
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
-    private val successHandler: AuthenticationSuccessHandler,
-    private val customOidcUserService: CustomOidcUserService
+    private val customOidcUserService: CustomOidcUserService,
+    private val userDetailsService: UserDetailsService,
+    @Value("\${app.frontend.url:http://localhost:3000}")
+    private val frontendUrl: String,
+    @Value("\${server.servlet.session.cookie.secure:false}")
+    private val cookieSecure: Boolean,
+    @Value("\${spring.h2.console.enabled:false}")
+    private val h2ConsoleEnabled: Boolean,
 ) {
 
     @Bean
+    fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
+
+    @Bean
+    fun authenticationProvider(): DaoAuthenticationProvider =
+        DaoAuthenticationProvider(userDetailsService).apply {
+            setPasswordEncoder(passwordEncoder())
+        }
+
+    @Bean
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        val configuration = CorsConfiguration()
+        configuration.allowedOrigins = listOf(frontendUrl)
+        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+        configuration.allowedHeaders = listOf("*")
+        configuration.exposedHeaders = listOf("X-XSRF-TOKEN")
+        configuration.allowCredentials = true
+        configuration.maxAge = 3600L // Cache preflight requests for 1 hour
+        val source = UrlBasedCorsConfigurationSource()
+        source.registerCorsConfiguration("/**", configuration)
+        return source
+    }
+
+    @Bean
+    fun authenticationManager(config: AuthenticationConfiguration): AuthenticationManager =
+        config.authenticationManager
+
+    @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+        // Create OAuth2 success handler inline
+        val oauth2SuccessHandler = SimpleUrlAuthenticationSuccessHandler().apply {
+            setDefaultTargetUrl(frontendUrl)
+            setAlwaysUseDefaultTargetUrl(true)
+        }
+
         http
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers("/h2-console/**").permitAll()
                     .requestMatchers("/api/health").permitAll()
+                    .requestMatchers("/api/auth/signup", "/api/auth/signin", "/api/auth/csrf").permitAll()
                     .requestMatchers("/api/**").authenticated()
                     .anyRequest().permitAll()
             }
             .headers { headers ->
-                headers.frameOptions { frameOptions ->
-                    frameOptions.sameOrigin()
-                }
+                headers
+                    .frameOptions { fo ->
+                        // The H2 console requires same-origin framing. Production
+                        // (h2 console disabled) hardens to DENY.
+                        if (h2ConsoleEnabled) fo.sameOrigin() else fo.deny()
+                    }
+                    .xssProtection { it.disable() } // Modern browsers have this built-in
+                    .httpStrictTransportSecurity { hsts ->
+                        hsts
+                            .includeSubDomains(true)
+                            .maxAgeInSeconds(31536000)
+                            .preload(true)
+                    }
             }
             .oauth2Login { oauth2 ->
                 oauth2
-                    .loginPage("/oauth2/authorization/google") // entry page
+                    .loginPage("/oauth2/authorization/google")
                     .userInfoEndpoint { u -> u.oidcUserService(customOidcUserService) }
-                    .successHandler(successHandler) // handle post-login
+                    .successHandler(oauth2SuccessHandler)
+                    .failureUrl("$frontendUrl/login?error=oauth_failed")
             }
-            .csrf { it.ignoringRequestMatchers("/h2-console/**", "/api/**") }
-            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) }
-            .cors { cors ->
-                cors.configurationSource {
-                    CorsConfiguration().apply {
-                        allowedOrigins = listOf("http://localhost:3000")
-                        allowedMethods = listOf("GET", "POST", "PUT", "DELETE")
-                        allowCredentials = true
-                        allowedHeaders = listOf("*")
-                    }
+            .logout { logout ->
+                logout
+                    .logoutUrl("/api/auth/logout")
+                    .logoutSuccessHandler(HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT))
+                    .invalidateHttpSession(true)
+                    .deleteCookies("JSESSIONID", "XSRF-TOKEN")
+                    .clearAuthentication(true)
+            }
+            .csrf { csrf ->
+                val tokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse().apply {
+                    setCookieName("XSRF-TOKEN")
+                    setHeaderName("X-XSRF-TOKEN")
+                    setCookiePath("/")
+                    // When `cookieSecure` is true (production), force the Secure flag.
+                    // When false (dev), leave it null so the cookie follows request.isSecure()
+                    // and works over plain HTTP.
+                    setSecure(if (cookieSecure) true else null)
                 }
+                val requestHandler = CsrfTokenRequestAttributeHandler()
+                requestHandler.setCsrfRequestAttributeName(null)
+                csrf
+                    .csrfTokenRepository(tokenRepository)
+                    .csrfTokenRequestHandler(requestHandler)
+                    .ignoringRequestMatchers("/h2-console/**")
+            }
+            .sessionManagement { session ->
+                session
+                    .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                    .sessionFixation().migrateSession()
+                    .maximumSessions(3)
+                    .maxSessionsPreventsLogin(false)
+            }
+            .cors { cors ->
+                cors.configurationSource(corsConfigurationSource())
             }
             .exceptionHandling { exceptions ->
                 exceptions

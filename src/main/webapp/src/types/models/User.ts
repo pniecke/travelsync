@@ -33,12 +33,6 @@ export interface User {
      */
     id?: string;
     /**
-     * Password of the user
-     * @type {string}
-     * @memberof User
-     */
-    password?: string;
-    /**
      * Username of the user
      * @type {string}
      * @memberof User
@@ -57,12 +51,6 @@ export interface User {
      */
     lastName?: string;
     /**
-     * 
-     * @type {Array<UserRole>}
-     * @memberof User
-     */
-    roles?: Array<UserRole>;
-    /**
      * Email address of the user
      * @type {string}
      * @memberof User
@@ -80,6 +68,18 @@ export interface User {
      * @memberof User
      */
     locale?: string;
+    /**
+     * 
+     * @type {Array<UserRole>}
+     * @memberof User
+     */
+    roles?: Array<UserRole>;
+    /**
+     * Password of the user (write-only)
+     * @type {string}
+     * @memberof User
+     */
+    password?: string;
 }
 
 /**
@@ -103,14 +103,14 @@ export function UserFromJSONTyped(json: any, ignoreDiscriminator: boolean): User
     return {
         
         'id': !exists(json, 'id') ? undefined : json['id'],
-        'password': !exists(json, 'password') ? undefined : json['password'],
         'username': json['username'],
         'firstName': !exists(json, 'firstName') ? undefined : json['firstName'],
         'lastName': !exists(json, 'lastName') ? undefined : json['lastName'],
-        'roles': !exists(json, 'roles') ? undefined : ((json['roles'] as Array<any>).map(UserRoleFromJSON)),
         'email': !exists(json, 'email') ? undefined : json['email'],
         'mobile': !exists(json, 'mobile') ? undefined : json['mobile'],
         'locale': !exists(json, 'locale') ? undefined : json['locale'],
+        'roles': !exists(json, 'roles') ? undefined : ((json['roles'] as Array<any>).map(UserRoleFromJSON)),
+        'password': !exists(json, 'password') ? undefined : json['password'],
     };
 }
 
@@ -124,14 +124,14 @@ export function UserToJSON(value?: User | null): any {
     return {
         
         'id': value.id,
-        'password': value.password,
         'username': value.username,
         'firstName': value.firstName,
         'lastName': value.lastName,
-        'roles': value.roles === undefined ? undefined : ((value.roles as Array<any>).map(UserRoleToJSON)),
         'email': value.email,
         'mobile': value.mobile,
         'locale': value.locale,
+        'roles': value.roles === undefined ? undefined : ((value.roles as Array<any>).map(UserRoleToJSON)),
+        'password': value.password,
     };
 }
 

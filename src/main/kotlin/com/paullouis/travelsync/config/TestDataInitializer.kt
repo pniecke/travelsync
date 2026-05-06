@@ -11,6 +11,7 @@ import com.paullouis.travelsync.repository.ExpenseRepository
 import com.paullouis.travelsync.repository.TripRepository
 import com.paullouis.travelsync.repository.UserRepository
 import jakarta.annotation.PostConstruct
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 import java.util.*
@@ -19,7 +20,8 @@ import java.util.*
 class TestDataInitializer(
     private val userRepository: UserRepository,
     private val tripRepository: TripRepository,
-    private val expenseRepository: ExpenseRepository
+    private val expenseRepository: ExpenseRepository,
+    private val passwordEncoder: PasswordEncoder,
 ) {
     @PostConstruct
     fun init() {
@@ -68,7 +70,7 @@ class TestDataInitializer(
 
     private fun getUser1(): UserEntity {
         return UserEntity(
-            password = "mausi",
+            password = passwordEncoder.encode("mausi"),
             email = "mausi@bla.com",
             username = "mausi",
             firstName = "Lili Jeanne",
@@ -86,7 +88,7 @@ class TestDataInitializer(
 
     private fun getUser2(): UserEntity {
         return UserEntity(
-            password = "admin",
+            password = passwordEncoder.encode("admin"),
             email = "admin@bla.com",
             username = "admin",
             firstName = "admin",

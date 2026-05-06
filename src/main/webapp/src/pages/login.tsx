@@ -6,10 +6,13 @@ import {AnimatedBackground} from "@/components/AnimatedBackground";
 import Link from "next/link";
 import {AuthFormData} from "@/types/models/AuthFormData";
 import {useAuth} from "@/context/AuthProvider";
-import {useRouter} from "next/router";
+import {useRouter} from "next/navigation";
+import apiClient, {ensureCsrf} from "@/services/apiClient";
+import {SignInRequest} from "@/types/models/SignInRequest";
+import {AxiosError} from "axios";
 
 export const Login: React.FC = () => {
-    const {user, loading} = useAuth();
+    const {user, loading, refetch} = useAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -25,12 +28,52 @@ export const Login: React.FC = () => {
     })
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        // TODO: call email/password login endpoint, then refresh user
-        setTimeout(() => setIsLoading(false), 1000);
+        setErrorMsg(null);
+
+        const signInRequest: SignInRequest = {
+            email: formData.email,
+            password: formData.password
+        };
+
+        try {
+            await ensureCsrf();
+            const response = await apiClient.post('/auth/signin', signInRequest);
+
+            // Refetch user data to update AuthProvider
+            await refetch();
+
+            router.replace('/dashboard');
+        } catch (err: unknown) {
+            if (err instanceof AxiosError) {
+                const errorMessage = err?.response?.data?.error;
+                if (err?.response?.status === 401) {
+                    setErrorMsg(errorMessage || "Invalid credentials. Please check your email and password.");
+                } else if (err?.response?.status === 403) {
+                    setErrorMsg("Request blocked (CSRF). Please refresh and try again.")
+                } else if (err?.response?.status === 429) {
+                    const retryAfter = err.response?.data?.retryAfterSeconds as number | undefined;
+                    const minutes = retryAfter ? Math.ceil(retryAfter / 60) : null;
+                    setErrorMsg(
+                        minutes
+                            ? `Too many failed attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`
+                            : (errorMessage || "Too many failed attempts. Try again later.")
+                    );
+                } else if (err?.response?.status === 400) {
+                    setErrorMsg(errorMessage || "Invalid request. Please check your input.");
+                } else {
+                    setErrorMsg("Sign in failed. Please try again.");
+                }
+            } else {
+                setErrorMsg("Sign in failed. Please try again.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,11 +103,20 @@ export const Login: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Show error message if exists */}
+                    {errorMsg && (
+                        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm" role="alert">
+                            <strong className="font-bold">Error: </strong>
+                            <span className="block sm:inline">{errorMsg}</span>
+                        </div>
+                    )}
+
                     {/* OAuth Buttons */}
                     <div className="space-y-3 mb-6">
                         <button
+                            type="button"
                             className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-slate-800"
-                            onClick={() => window.location.href = "http://localhost:8080/oauth2/authorization/google"}
+                            onClick={() => window.location.href = "/oauth2/authorization/google"}
                         >
                             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                                 <path
@@ -88,11 +140,15 @@ export const Login: React.FC = () => {
                         </button>
 
                         <button
-                            className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-slate-800">
-                            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="#000000">
-                                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                            type="button"
+                            disabled
+                            title="Apple Sign-In is not yet available"
+                            className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 rounded-lg text-slate-400 cursor-not-allowed opacity-60">
+                            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="#9CA3AF">
+                                <path
+                                    d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
                             </svg>
-                            Continue with Apple
+                            Continue with Apple (coming soon)
                         </button>
                     </div>
 
@@ -175,7 +231,7 @@ export const Login: React.FC = () => {
 
                     <div className="mt-6 text-center">
                         <p className="text-sm text-slate-600">
-                            Don't have an account?{" "}
+                            Don&#39;t have an account?{" "}
                             <Link href="/signup" className="text-sky-500 hover:text-sky-600 font-medium">
                                 Sign up
                             </Link>

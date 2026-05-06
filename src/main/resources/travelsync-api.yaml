@@ -15,8 +15,7 @@ servers:
 paths:
   /health:
     get:
-      tags:
-        - Health
+      tags: [ Health ]
       operationId: getHealth
       summary: Health check for the TravelSync API
       responses:
@@ -28,31 +27,9 @@ paths:
                 type: string
                 example: "UP"
 
-  /trips/my-trips:
-    get:
-      tags:
-        - Trip
-      operationId: getTripsByLoggedInUser
-      summary: Get Trips for Logged-in User
-      description: Retrieves a list of trips associated with the currently authenticated user.
-      security:
-        - OidcAuth: [ ]
-      responses:
-        '200':
-          description: List of trips for the logged-in user
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Trip'
-        '401':
-          description: Unauthorized - Authentication required
-
   /trips:
     post:
-      tags:
-        - Trip
+      tags: [ Trip ]
       operationId: createTrip
       summary: Create a new trip
       security:
@@ -79,10 +56,29 @@ paths:
         '401':
           description: Unauthorized - Authentication required
 
+  /trips/my-trips:
+    get:
+      tags: [ Trip ]
+      operationId: getTripsByLoggedInUser
+      summary: Get Trips for Logged-in User
+      description: Retrieves a list of trips associated with the currently authenticated user.
+      security:
+        - OidcAuth: [ ]
+      responses:
+        '200':
+          description: List of trips for the logged-in user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+        '401':
+          description: Unauthorized - Authentication required
+
   /trips/{id}:
     put:
-      tags:
-        - Trip
+      tags: [ Trip ]
       operationId: updateTrip
       summary: Update an existing trip
       security:
@@ -115,8 +111,7 @@ paths:
 
   /expenses:
     get:
-      tags:
-        - Expense
+      tags: [ Expense ]
       operationId: getExpenses
       summary: Get expenses with optional filtering
       description: Returns a list of expenses, optionally filtered by creator or payer
@@ -145,8 +140,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Expense'
     post:
-      tags:
-        - Expense
+      tags: [ Expense ]
       operationId: createExpense
       summary: Create a new expense
       security:
@@ -175,8 +169,7 @@ paths:
 
   /user/me:
     get:
-      tags:
-        - User
+      tags: [ User ]
       operationId: getLoggedInUser
       summary: Get the currently logged-in user
       security:
@@ -193,8 +186,7 @@ paths:
 
   /users:
     get:
-      tags:
-        - User
+      tags: [ User ]
       operationId: getAllUsers
       summary: Get all users
       security:
@@ -277,10 +269,6 @@ components:
           format: uuid
           description: Unique identifier for the user
           example: "123e4567-e89b-12d3-a456-426614174000"
-        password:
-          type: string
-          description: Password of the user
-          example: "securepassword"
         username:
           type: string
           description: Username of the user
@@ -293,10 +281,6 @@ components:
           type: string
           description: Last name of the user
           example: "Doe"
-        roles:
-          type: array
-          items:
-            $ref: '#/components/schemas/UserRole'
         email:
           type: string
           format: email
@@ -308,9 +292,17 @@ components:
           example: "+41 79 123 45 67"
         locale:
           type: string
-          format: locale
           description: Locale of the user
           example: "en-US"
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserRole'
+        password:
+          type: string
+          description: Password of the user (write-only)
+          writeOnly: true
+          example: "securepassword"
 
     Expense:
       type: object
@@ -319,7 +311,7 @@ components:
         - currency
         - tripId
         - createdBy
-        - date
+        - dateOfExpense
       properties:
         id:
           type: string
@@ -337,6 +329,11 @@ components:
           example: 150.75
         currency:
           $ref: '#/components/schemas/Currency'
+        dateOfExpense:
+          type: string
+          format: local-date-time
+          description: Date of the expense
+          example: "2025-07-10T15:30:00"
         lastModified:
           type: string
           format: local-date-time
@@ -351,11 +348,6 @@ components:
           format: uuid
           description: Unique identifier of the trip associated with the expense
           example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-        dateOfExpense:
-          type: string
-          format: local-date-time
-          description: Date of the expense
-          example: "2025-07-10T15:30:00"
 
     Currency:
       type: string
@@ -374,3 +366,46 @@ components:
       enum: [ USER, ADMIN ]
       description: Role of the user
       example: "USER"
+
+    SignUpRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          description: Username for the new account
+          example: "new_user"
+        password:
+          type: string
+          description: Password for the new account
+          example: "securepassword123"
+        email:
+          type: string
+          format: email
+          description: Optional email address
+          example: "user@example.com"
+          nullable: true
+
+    SignInRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          description: Email address for authentication
+          example: "existing@user.ch"
+        password:
+          type: string
+          description: Password for authentication
+          example: "securepassword123"
+
+    MeResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'

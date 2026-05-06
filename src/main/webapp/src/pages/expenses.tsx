@@ -8,20 +8,20 @@ import Link from "next/link";
 import ExpenseDialog from "@/components/ExpenseDialog";
 import {formatDate} from "@/utils/date";
 import {GetServerSideProps} from "next";
-import apiClient from "@/services/apiClient";
+import {createServerApiClient} from "@/services/apiClient";
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
     const cookieHeader = ctx.req.headers.cookie
     if (!cookieHeader) {
         return {redirect: {destination: '/login', permanent: false}}
     }
-    apiClient.defaults.headers.Cookie = cookieHeader
+    const ssrClient = createServerApiClient(cookieHeader)
 
     try {
         const [user, trips, expenses] = await Promise.all([
-            getLoggedInUser(),
-            getMyTrips(),
-            getExpenses()
+            getLoggedInUser(ssrClient),
+            getMyTrips(ssrClient),
+            getExpenses(undefined, ssrClient),
         ]);
 
         return {props: {initialUser: user, initialTrips: trips, initialExpenses: expenses}}
@@ -76,11 +76,11 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
             if (timeFilter === 'month') {
                 const lastMonth = new Date();
                 lastMonth.setMonth(now.getMonth() - 1);
-                result = result.filter(expense => new Date(expense.date) >= lastMonth);
+                result = result.filter(expense => new Date(expense.dateOfExpense) >= lastMonth);
             } else if (timeFilter === 'year') {
                 const lastYear = new Date();
                 lastYear.setFullYear(now.getFullYear() - 1);
-                result = result.filter(expense => new Date(expense.date) >= lastYear);
+                result = result.filter(expense => new Date(expense.dateOfExpense) >= lastYear);
             }
 
             // Payer filter
@@ -334,7 +334,7 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
                                             </div>
                                             <div className="flex items-center text-gray-400 text-sm mt-1">
                                                 <Calendar className="w-3 h-3 mr-1"/>
-                                                <span className="mr-3">{formatDate(expense.date)}</span>
+                                                <span className="mr-3">{formatDate(expense.dateOfExpense)}</span>
                                                 <span>
                                                 Paid by {expense.paidBy?.username}
                                                     {user && expense.paidBy?.id === user.id && " (You)"}

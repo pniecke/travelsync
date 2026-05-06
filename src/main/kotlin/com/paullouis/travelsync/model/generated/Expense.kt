@@ -11,13 +11,13 @@ import io.swagger.v3.oas.annotations.media.Schema
  * 
  * @param amount Amount of the expense
  * @param currency 
+ * @param dateOfExpense Date of the expense
  * @param createdBy 
  * @param tripId Unique identifier of the trip associated with the expense
  * @param id Unique identifier for the expense
  * @param description Description of the expense
  * @param lastModified Last modified date and time of the expense
  * @param paidBy 
- * @param dateOfExpense Date of the expense
  */
 data class Expense(
 
@@ -26,6 +26,9 @@ data class Expense(
 
     @Schema(example = "null", required = true, description = "")
     @get:JsonProperty("currency", required = true) val currency: Currency,
+
+    @Schema(example = "2025-07-10T15:30:00", required = true, description = "Date of the expense")
+    @get:JsonProperty("dateOfExpense", required = true) val dateOfExpense: java.time.LocalDateTime,
 
     @Schema(example = "null", required = true, description = "")
     @get:JsonProperty("createdBy", required = true) val createdBy: User,
@@ -43,10 +46,7 @@ data class Expense(
     @get:JsonProperty("lastModified") val lastModified: java.time.LocalDateTime? = null,
 
     @Schema(example = "null", description = "")
-    @get:JsonProperty("paidBy") val paidBy: User? = null,
-
-    @Schema(example = "2025-07-10T15:30:00", description = "Date of the expense")
-    @get:JsonProperty("dateOfExpense") val dateOfExpense: java.time.LocalDateTime? = null
+    @get:JsonProperty("paidBy") val paidBy: User? = null
 ) {
 
 }

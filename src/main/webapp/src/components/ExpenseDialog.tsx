@@ -31,7 +31,7 @@ export default function ExpenseDialog({
         createdBy: user,
         currency: defaultCurrency,
         paidBy: user,
-        date: new Date().toISOString().slice(0, 16)
+        dateOfExpense: new Date().toISOString().slice(0, 16)
     });
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
     const [tripSearchQuery, setTripSearchQuery] = useState('');
@@ -120,7 +120,7 @@ export default function ExpenseDialog({
                 createdBy: user,
                 currency: "CHF",
                 paidBy: expenseForm.paidBy || user,
-                date: expenseForm.date || new Date().toISOString().slice(0, 16),
+                dateOfExpense: expenseForm.dateOfExpense || new Date().toISOString().slice(0, 16),
             };
 
             await createExpense([newExpense]);
@@ -134,7 +134,7 @@ export default function ExpenseDialog({
                 createdBy: user,
                 currency: defaultCurrency,
                 paidBy: user,
-                date: new Date().toISOString().slice(0, 16)
+                dateOfExpense: new Date().toISOString().slice(0, 16)
             });
             setSelectedTrip(null);
             setTripSearchQuery('');

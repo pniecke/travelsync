@@ -1,6 +1,9 @@
 index.ts
 models/Currency.ts
 models/Expense.ts
+models/MeResponse.ts
+models/SignInRequest.ts
+models/SignUpRequest.ts
 models/Trip.ts
 models/TripStatus.ts
 models/User.ts

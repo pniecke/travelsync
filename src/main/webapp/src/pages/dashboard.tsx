@@ -1,16 +1,16 @@
 'use client'
 
-import {Calendar, Check, DollarSign, MapPin, Plus, Search, UserPlus, Users, X} from "lucide-react";
+import {Calendar, Check, DollarSign, LogOut, MapPin, Plus, Search, UserPlus, Users, X} from "lucide-react";
 import React, {useEffect, useState} from "react";
 import {Expense, Trip, TripStatus, User} from "@/types";
 import {createTrip, getMyTrips} from "@/services/tripService";
 import {GetServerSideProps} from "next";
-import apiClient from "@/services/apiClient";
-import {getAllUsers, getLoggedInUser} from "@/services/userService";
+import {createServerApiClient} from "@/services/apiClient";
 import Link from "next/link";
 import {getExpenses} from "@/services/expenseService";
 import ExpenseDialog from "@/components/ExpenseDialog";
 import {formatDate} from "@/utils/date";
+import {useAuth} from "@/context/AuthProvider";
 
 interface DashboardProps {
     user: User
@@ -29,22 +29,28 @@ export const getServerSideProps: GetServerSideProps<DashboardProps> = async (ctx
     if (!cookieHeader) {
         return {redirect: {destination: '/login', permanent: false}}
     }
-    apiClient.defaults.headers.Cookie = cookieHeader
+    const ssrClient = createServerApiClient(cookieHeader)
 
     try {
-        const [user, trips, expenses, allUsers] = await Promise.all([
-            getLoggedInUser(),
-            getMyTrips(),
-            getExpenses(),
-            getAllUsers()
+        const [userRes, tripsRes, expensesRes, allUsersRes] = await Promise.all([
+            ssrClient.get('/user/me'),
+            ssrClient.get('/trips/my-trips'),
+            ssrClient.get('/expenses'),
+            ssrClient.get('/users'),
         ]);
+
+        const user: User = userRes.data;
+        const trips: Trip[] = tripsRes.data;
+        const expenses: Expense[] = expensesRes.data;
+        const allUsers: User[] = allUsersRes.data;
+
         const filteredUsers = allUsers.filter(u => u.id !== user.id);
         const myExpenses = expenses.filter(expense => expense.createdBy.id === user.id);
         const expensesPaidByMe = expenses.filter(expense => expense.paidBy?.id === user.id);
         return {props: {user, trips, myExpenses, expensesPaidByMe, allUsers: filteredUsers}}
     } catch (error) {
         console.error("Error fetching data:", error);
-        // If any call fails (e.g. 401), redirect to login
+        // If any call fails (e.g., 401), redirect to log in
         return {
             redirect: {destination: '/login', permanent: false}
         }
@@ -58,6 +64,7 @@ export default function Dashboard({
                                       expensesPaidByMe: initialExpensesPaidByMe,
                                       allUsers: initialAllUsers
                                   }: DashboardProps) {
+    const {logout} = useAuth();
     const [trips, setTrips] = useState<Trip[]>(initialTrips);
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -78,6 +85,10 @@ export default function Dashboard({
     const [myExpenses, setMyExpenses] = useState<Expense[]>(initialMyExpenses);
     const [expensesPaidByMe, setExpensesPaidByMe] = useState<Expense[]>(initialExpensesPaidByMe || []);
     const [showExpenseDialog, setShowExpenseDialog] = useState(false);
+
+    const handleLogout = async () => {
+        await logout();
+    };
 
     const getUpcomingTrip = (trips: Trip[]): Trip | undefined => {
         if (!trips || trips.length === 0) return undefined;
@@ -145,7 +156,7 @@ export default function Dashboard({
         setTrips(updatedTrips);
     }
 
-    // Search users based on query
+    // Search users based on a query
     useEffect(() => {
         if (searchQuery.trim() === '') {
             setSearchResults([]);
@@ -187,11 +198,21 @@ export default function Dashboard({
         <div className="p-6 max-w-7xl mx-auto">
             {/* Welcome Header */}
             <div className="mb-10 pl-4 border-l-4 border-blue-500">
-                <div className="flex items-center gap-3 mb-3">
-                    <MapPin className="w-6 h-6 text-blue-400"/>
-                    <h1 className="text-4xl font-bold text-gray-100">
-                        Welcome back, <span className="text-blue-400">{user!.firstName}</span>!
-                    </h1>
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                        <MapPin className="w-6 h-6 text-blue-400"/>
+                        <h1 className="text-4xl font-bold text-gray-100">
+                            Welcome back, <span className="text-blue-400">{user!.firstName || user!.username}</span>
+                        </h1>
+                    </div>
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+                        title="Sign out"
+                    >
+                        <LogOut className="w-4 h-4"/>
+                        <span>Logout</span>
+                    </button>
                 </div>
                 <p className="text-lg font-medium text-gray-300 pl-9">
                     Here&apos;s what&apos;s happening with your trips
@@ -298,7 +319,7 @@ export default function Dashboard({
                                             </p>
                                             <p className="text-xs text-gray-400">
                                                 Paid
-                                                by {expense.paidBy?.username} • {formatDate(expense.date)}
+                                                by {expense.paidBy?.username} • {formatDate(expense.dateOfExpense)}
                                             </p>
                                         </div>
                                         <span className="text-sm font-semibold text-gray-100">

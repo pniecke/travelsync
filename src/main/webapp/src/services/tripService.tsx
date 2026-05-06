@@ -1,12 +1,14 @@
 import {Trip} from "@/types";
-import apiClient from "@/services/apiClient";
+import apiClient, {ensureCsrf} from "@/services/apiClient";
+import {AxiosInstance} from "axios";
 
-export async function getMyTrips(): Promise<Trip[]> {
-    const response = await apiClient.get<Trip[]>('/trips/my-trips');
+export async function getMyTrips(client: AxiosInstance = apiClient): Promise<Trip[]> {
+    const response = await client.get<Trip[]>('/trips/my-trips');
     return response.data
 }
 
 export async function createTrip(trips: Trip[]): Promise<Trip[]> {
+    await ensureCsrf();
     const response = await apiClient.post('/trips', trips);
     return response.data
 }

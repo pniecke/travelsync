@@ -57,6 +57,12 @@ export interface Expense {
      */
     currency: Currency;
     /**
+     * Date of the expense
+     * @type {string}
+     * @memberof Expense
+     */
+    dateOfExpense: string;
+    /**
      * Last modified date and time of the expense
      * @type {string}
      * @memberof Expense
@@ -80,12 +86,6 @@ export interface Expense {
      * @memberof Expense
      */
     tripId: string;
-    /**
-     * Date of the expense
-     * @type {string}
-     * @memberof Expense
-     */
-    dateOfExpense?: string;
 }
 
 /**
@@ -95,6 +95,7 @@ export function instanceOfExpense(value: object): boolean {
     let isInstance = true;
     isInstance = isInstance && "amount" in value;
     isInstance = isInstance && "currency" in value;
+    isInstance = isInstance && "dateOfExpense" in value;
     isInstance = isInstance && "createdBy" in value;
     isInstance = isInstance && "tripId" in value;
 
@@ -115,11 +116,11 @@ export function ExpenseFromJSONTyped(json: any, ignoreDiscriminator: boolean): E
         'description': !exists(json, 'description') ? undefined : json['description'],
         'amount': json['amount'],
         'currency': CurrencyFromJSON(json['currency']),
+        'dateOfExpense': json['dateOfExpense'],
         'lastModified': !exists(json, 'lastModified') ? undefined : json['lastModified'],
         'createdBy': UserFromJSON(json['createdBy']),
         'paidBy': !exists(json, 'paidBy') ? undefined : UserFromJSON(json['paidBy']),
         'tripId': json['tripId'],
-        'dateOfExpense': !exists(json, 'dateOfExpense') ? undefined : json['dateOfExpense'],
     };
 }
 
@@ -136,11 +137,11 @@ export function ExpenseToJSON(value?: Expense | null): any {
         'description': value.description,
         'amount': value.amount,
         'currency': CurrencyToJSON(value.currency),
+        'dateOfExpense': value.dateOfExpense,
         'lastModified': value.lastModified,
         'createdBy': UserToJSON(value.createdBy),
         'paidBy': UserToJSON(value.paidBy),
         'tripId': value.tripId,
-        'dateOfExpense': value.dateOfExpense,
     };
 }
 
