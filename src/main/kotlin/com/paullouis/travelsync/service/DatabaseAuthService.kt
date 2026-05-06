@@ -52,7 +52,9 @@ class DatabaseAuthService(
             throw IllegalArgumentException("Password must be at least 8 characters long")
         }
         if (userRepository.existsByEmail(email)) {
-            throw DuplicateUserException("User with email '$email' already exists")
+            // Don't echo the email back to avoid trivial scraping. Username
+            // collisions can be specific because usernames are public.
+            throw DuplicateEmailException("An account with that email already exists. Please sign in instead.")
         }
         if (userRepository.findByUsername(username) != null) {
             throw DuplicateUserException("Username '$username' is already taken")
@@ -74,7 +76,7 @@ class DatabaseAuthService(
         } catch (e: DataIntegrityViolationException) {
             // Race window between the existence checks above and INSERT;
             // unique constraints on email/username are the authoritative guard.
-            throw DuplicateUserException("User with email '$email' or username '$username' already exists")
+            throw DuplicateUserException("We couldn't create your account. Please try again.")
         }
         return userMapper.toDto(saved)
     }
@@ -141,7 +143,13 @@ class DatabaseAuthService(
 /**
  * Exception thrown when attempting to create a user that already exists
  */
-class DuplicateUserException(message: String) : RuntimeException(message)
+open class DuplicateUserException(message: String) : RuntimeException(message)
+
+/**
+ * Subtype for email collisions. Allows the controller to log the leak-sensitive
+ * case without changing the user-facing message.
+ */
+class DuplicateEmailException(message: String) : DuplicateUserException(message)
 
 private val EMAIL_PATTERN = Regex("^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$")
 

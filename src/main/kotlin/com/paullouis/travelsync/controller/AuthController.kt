@@ -4,8 +4,10 @@ import com.paullouis.travelsync.model.generated.MeResponse
 import com.paullouis.travelsync.model.generated.SignInRequest
 import com.paullouis.travelsync.model.generated.SignUpRequest
 import com.paullouis.travelsync.service.DatabaseAuthService
+import com.paullouis.travelsync.service.DuplicateEmailException
 import com.paullouis.travelsync.service.DuplicateUserException
 import com.paullouis.travelsync.service.LoginAttemptService
+import com.paullouis.travelsync.service.SignupAttemptService
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
@@ -22,17 +24,40 @@ import org.springframework.web.bind.annotation.*
 class AuthController(
     private val authService: DatabaseAuthService,
     private val loginAttemptService: LoginAttemptService,
+    private val signupAttemptService: SignupAttemptService,
 ) {
 
     private val logger = LoggerFactory.getLogger(AuthController::class.java)
 
     @PostMapping("/signup")
-    fun signUp(@RequestBody signUpRequest: SignUpRequest): ResponseEntity<Map<String, String>> {
+    fun signUp(
+        @RequestBody signUpRequest: SignUpRequest,
+        request: HttpServletRequest,
+    ): ResponseEntity<Map<String, Any>> {
+        val clientIp = request.remoteAddr ?: "unknown"
+
+        if (signupAttemptService.isBlocked(clientIp)) {
+            val retryAfter = signupAttemptService.retryAfterSeconds(clientIp)
+            logger.warn("Sign up blocked - rate limit for IP {} (retry in ${retryAfter}s)", clientIp)
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, retryAfter.toString())
+                .body(mapOf(
+                    "error" to "Too many signup attempts from this network. Please try again later.",
+                    "retryAfterSeconds" to retryAfter,
+                ))
+        }
+
+        signupAttemptService.recordAttempt(clientIp)
+
         return try {
             authService.localSignUp(signUpRequest)
             logger.info("User signed up successfully: ${signUpRequest.email}")
             ResponseEntity.status(HttpStatus.CREATED)
                 .body(mapOf("message" to "Account created successfully"))
+        } catch (e: DuplicateEmailException) {
+            logger.warn("Sign up failed - duplicate email: ${signUpRequest.email}")
+            ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(mapOf("error" to e.message.orEmpty()))
         } catch (e: DuplicateUserException) {
             logger.warn("Sign up failed - duplicate user: ${signUpRequest.email}")
             ResponseEntity.status(HttpStatus.CONFLICT)

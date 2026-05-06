@@ -114,7 +114,15 @@ export const Signup: React.FC = () => {
             if (err instanceof AxiosError) {
                 const errorMessage = err?.response?.data?.error;
                 if (err?.response?.status === 409) {
-                    setErrorMsg(errorMessage || "A user with that email or username already exists.");
+                    setErrorMsg(errorMessage || "We couldn't create your account with the provided details.");
+                } else if (err?.response?.status === 429) {
+                    const retryAfter = err.response?.data?.retryAfterSeconds as number | undefined;
+                    const minutes = retryAfter ? Math.ceil(retryAfter / 60) : null;
+                    setErrorMsg(
+                        minutes
+                            ? `Too many signup attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`
+                            : (errorMessage || "Too many signup attempts. Please try again later.")
+                    );
                 } else if (err?.response?.status === 400) {
                     setErrorMsg(errorMessage || "Invalid input. Please check your information.");
                 } else {
