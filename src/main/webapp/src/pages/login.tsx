@@ -4,12 +4,17 @@ import React, {useEffect, useState} from "react";
 import {Eye, EyeOff, FolderSyncIcon as Sync, Plane} from "lucide-react";
 import {AnimatedBackground} from "@/components/AnimatedBackground";
 import Link from "next/link";
-import {AuthFormData} from "@/types/models/AuthFormData";
 import {useAuth} from "@/context/AuthProvider";
 import {useRouter} from "next/navigation";
 import apiClient, {ensureCsrf} from "@/services/apiClient";
 import {SignInRequest} from "@/types/models/SignInRequest";
 import {AxiosError} from "axios";
+
+interface LoginFormData {
+    identifier: string;
+    password: string;
+    rememberMe: boolean;
+}
 
 export const Login: React.FC = () => {
     const {user, loading, refetch} = useAuth();
@@ -21,8 +26,8 @@ export const Login: React.FC = () => {
         }
     }, [user, loading, router]);
 
-    const [formData, setFormDate] = useState<AuthFormData>({
-        email: "",
+    const [formData, setFormDate] = useState<LoginFormData>({
+        identifier: "",
         password: "",
         rememberMe: false,
     })
@@ -36,7 +41,7 @@ export const Login: React.FC = () => {
         setErrorMsg(null);
 
         const signInRequest: SignInRequest = {
-            email: formData.email,
+            identifier: formData.identifier,
             password: formData.password
         };
 
@@ -52,7 +57,7 @@ export const Login: React.FC = () => {
             if (err instanceof AxiosError) {
                 const errorMessage = err?.response?.data?.error;
                 if (err?.response?.status === 401) {
-                    setErrorMsg(errorMessage || "Invalid credentials. Please check your email and password.");
+                    setErrorMsg(errorMessage || "Invalid credentials. Please check your email or username and password.");
                 } else if (err?.response?.status === 403) {
                     setErrorMsg("Request blocked (CSRF). Please refresh and try again.")
                 } else if (err?.response?.status === 429) {
@@ -157,21 +162,22 @@ export const Login: React.FC = () => {
                             <div className="w-full border-t border-slate-300"/>
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-slate-500">Or continue with email</span>
+                            <span className="px-2 bg-white text-slate-500">Or continue with email or username</span>
                         </div>
                     </div>
 
-                    {/* Email/Password Form */}
+                    {/* Identifier/Password Form */}
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
-                                Email
+                            <label htmlFor="identifier" className="block text-sm font-medium text-slate-700 mb-1">
+                                Email or username
                             </label>
                             <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                value={formData.email}
+                                type="text"
+                                id="identifier"
+                                name="identifier"
+                                autoComplete="username"
+                                value={formData.identifier}
                                 onChange={handleInputChange}
                                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800"
                                 required

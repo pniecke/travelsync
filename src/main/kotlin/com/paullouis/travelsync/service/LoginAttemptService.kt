@@ -8,10 +8,12 @@ import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * In-memory per-email login throttle.
+ * In-memory per-identifier login throttle.
  *
- * After [maxAttempts] consecutive failures, an email is locked out for [lockoutDuration].
- * The lock is released either when the window expires or after a successful login.
+ * After [maxAttempts] consecutive failures, an identifier is locked out for
+ * [lockoutDuration]. The lock is released either when the window expires or
+ * after a successful login. Identifier may be an email or a username — the
+ * key is case-folded so capitalization variants share the same lockout state.
  *
  * Single-instance only. For multi-instance deployments, replace with a shared store
  * (Redis, DB table) — the API stays the same.
@@ -28,8 +30,8 @@ class LoginAttemptService(
     private val lockoutDuration: Duration = Duration.ofMinutes(lockoutMinutes)
     private val attempts = ConcurrentHashMap<String, Attempt>()
 
-    fun isBlocked(email: String): Boolean {
-        val key = email.lowercase()
+    fun isBlocked(identifier: String): Boolean {
+        val key = identifier.lowercase()
         val record = attempts[key] ?: return false
         if (record.failures < maxAttempts) return false
         val unlockAt = record.firstFailureAt.plus(lockoutDuration)
@@ -41,14 +43,14 @@ class LoginAttemptService(
         }
     }
 
-    fun retryAfterSeconds(email: String): Long {
-        val record = attempts[email.lowercase()] ?: return 0
+    fun retryAfterSeconds(identifier: String): Long {
+        val record = attempts[identifier.lowercase()] ?: return 0
         val unlockAt = record.firstFailureAt.plus(lockoutDuration)
         return maxOf(0, Duration.between(Instant.now(), unlockAt).seconds)
     }
 
-    fun loginFailed(email: String) {
-        val key = email.lowercase()
+    fun loginFailed(identifier: String) {
+        val key = identifier.lowercase()
         attempts.compute(key) { _, current ->
             val now = Instant.now()
             if (current == null || now.isAfter(current.firstFailureAt.plus(lockoutDuration))) {
@@ -63,8 +65,8 @@ class LoginAttemptService(
         }
     }
 
-    fun loginSucceeded(email: String) {
-        attempts.remove(email.lowercase())
+    fun loginSucceeded(identifier: String) {
+        attempts.remove(identifier.lowercase())
     }
 
     private data class Attempt(val failures: Int, val firstFailureAt: Instant)

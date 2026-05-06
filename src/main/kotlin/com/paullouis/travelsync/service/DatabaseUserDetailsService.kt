@@ -13,11 +13,23 @@ import org.springframework.stereotype.Service
 class DatabaseUserDetailsService(
     private val userRepository: UserRepository
 ) : UserDetailsService {
-    override fun loadUserByUsername(username: String): UserDetails {
-        val userEntity = userRepository.findByEmail(username)
-            ?: throw UsernameNotFoundException("User not found: $username")
+    // Spring's UserDetailsService contract pins this method name; the parameter is
+    // really an identifier (email or username), so we delegate to a clearly-named
+    // helper to keep the misleading "username" wording confined to this one line.
+    override fun loadUserByUsername(identifier: String): UserDetails =
+        loadUserByIdentifier(identifier)
 
-        // Ensure user is configured for database authentication
+    private fun loadUserByIdentifier(identifier: String): UserDetails {
+        val trimmed = identifier.trim()
+        // Email and username are stored in distinct columns. Treat the input as an
+        // email when it contains '@', otherwise as a username — this avoids
+        // ambiguity if the same value happened to exist in both columns.
+        val userEntity = if (trimmed.contains('@')) {
+            userRepository.findByEmail(trimmed.lowercase())
+        } else {
+            userRepository.findByUsername(trimmed)
+        } ?: throw UsernameNotFoundException("User not found: $identifier")
+
         if (userEntity.authProvider != AuthProvider.DATABASE) {
             throw UsernameNotFoundException("User does not use database authentication")
         }

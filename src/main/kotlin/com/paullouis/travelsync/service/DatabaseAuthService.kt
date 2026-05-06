@@ -88,27 +88,27 @@ class DatabaseAuthService(
         servletRequest: HttpServletRequest,
         servletResponse: HttpServletResponse
     ): User {
-        val email = signInRequest.email.trim().lowercase()
+        val identifier = signInRequest.identifier.trim()
         val rawPassword = signInRequest.password
 
-        if (email.isBlank() || rawPassword.isBlank()) {
-            throw BadCredentialsException("Email and password are required")
+        if (identifier.isBlank() || rawPassword.isBlank()) {
+            throw BadCredentialsException("Identifier and password are required")
         }
 
-        if (loginAttemptService.isBlocked(email)) {
+        if (loginAttemptService.isBlocked(identifier)) {
             throw LockedException("Too many failed login attempts. Try again later.")
         }
 
         // Single lookup path: DatabaseUserDetailsService.loadUserByUsername (called by
-        // authenticationManager.authenticate) already enforces provider==DATABASE and
-        // password presence, and emits a UsernameNotFoundException for missing users.
-        // We don't pre-probe with findByEmail here so we (a) avoid a duplicate query
-        // and (b) don't leak whether the email is registered with a different provider.
-        val authRequest = UsernamePasswordAuthenticationToken(email, rawPassword)
+        // authenticationManager.authenticate) resolves email-or-username, enforces
+        // provider==DATABASE and password presence, and emits UsernameNotFoundException
+        // for missing users. We don't pre-probe here so we (a) avoid a duplicate query
+        // and (b) don't leak whether the identifier is registered with a different provider.
+        val authRequest = UsernamePasswordAuthenticationToken(identifier, rawPassword)
         val authentication = try {
             authenticationManager.authenticate(authRequest)
         } catch (e: BadCredentialsException) {
-            loginAttemptService.loginFailed(email)
+            loginAttemptService.loginFailed(identifier)
             throw e
         }
 
@@ -118,9 +118,11 @@ class DatabaseAuthService(
         SecurityContextHolder.setContext(context)
         securityContextRepository.saveContext(context, servletRequest, servletResponse)
 
-        loginAttemptService.loginSucceeded(email)
+        loginAttemptService.loginSucceeded(identifier)
 
-        val userEntity = userRepository.findByEmail(email)
+        // The principal name is the canonical email — see DatabaseUserDetailsService.
+        val authenticatedEmail = authentication.name
+        val userEntity = userRepository.findByEmail(authenticatedEmail)
             ?: throw IllegalStateException("Authenticated user not found in repository")
         return userMapper.toDto(userEntity)
     }

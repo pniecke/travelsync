@@ -392,12 +392,12 @@ components:
     SignInRequest:
       type: object
       required:
-        - email
+        - identifier
         - password
       properties:
-        email:
+        identifier:
           type: string
-          description: Email address for authentication
+          description: Email address or username for authentication
           example: "existing@user.ch"
         password:
           type: string

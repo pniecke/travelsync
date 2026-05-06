@@ -56,14 +56,14 @@ class AuthController(
     ): ResponseEntity<Map<String, Any>> {
         return try {
             val user = authService.localSignIn(signInRequest, request, response)
-            logger.info("User signed in successfully: ${signInRequest.email}")
+            logger.info("User signed in successfully: ${signInRequest.identifier}")
             ResponseEntity.ok(mapOf(
                 "message" to "Login successful",
                 "user" to MeResponse(user)
             ))
         } catch (e: LockedException) {
-            val retryAfter = loginAttemptService.retryAfterSeconds(signInRequest.email)
-            logger.warn("Sign in blocked - account locked: ${signInRequest.email} (retry in ${retryAfter}s)")
+            val retryAfter = loginAttemptService.retryAfterSeconds(signInRequest.identifier)
+            logger.warn("Sign in blocked - account locked: ${signInRequest.identifier} (retry in ${retryAfter}s)")
             ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, retryAfter.toString())
                 .body(mapOf(
@@ -71,11 +71,11 @@ class AuthController(
                     "retryAfterSeconds" to retryAfter,
                 ))
         } catch (e: BadCredentialsException) {
-            logger.warn("Sign in failed - bad credentials: ${signInRequest.email}")
+            logger.warn("Sign in failed - bad credentials: ${signInRequest.identifier}")
             ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(mapOf("error" to (e.message ?: "Invalid credentials")))
         } catch (e: IllegalStateException) {
-            logger.warn("Sign in failed - account configuration issue: ${signInRequest.email}")
+            logger.warn("Sign in failed - account configuration issue: ${signInRequest.identifier}")
             ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(mapOf("error" to e.message.orEmpty()))
         } catch (e: Exception) {

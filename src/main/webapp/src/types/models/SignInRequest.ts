@@ -20,11 +20,11 @@ import { exists, mapValues } from '../runtime';
  */
 export interface SignInRequest {
     /**
-     * Email address for authentication
+     * Email address or username for authentication
      * @type {string}
      * @memberof SignInRequest
      */
-    email: string;
+    identifier: string;
     /**
      * Password for authentication
      * @type {string}
@@ -38,7 +38,7 @@ export interface SignInRequest {
  */
 export function instanceOfSignInRequest(value: object): boolean {
     let isInstance = true;
-    isInstance = isInstance && "email" in value;
+    isInstance = isInstance && "identifier" in value;
     isInstance = isInstance && "password" in value;
 
     return isInstance;
@@ -54,7 +54,7 @@ export function SignInRequestFromJSONTyped(json: any, ignoreDiscriminator: boole
     }
     return {
         
-        'email': json['email'],
+        'identifier': json['identifier'],
         'password': json['password'],
     };
 }
@@ -68,7 +68,7 @@ export function SignInRequestToJSON(value?: SignInRequest | null): any {
     }
     return {
         
-        'email': value.email,
+        'identifier': value.identifier,
         'password': value.password,
     };
 }
