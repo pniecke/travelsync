@@ -1,11 +1,11 @@
 'use client'
 
 import React, {useEffect, useState} from "react";
-import {Eye, EyeOff, FolderSyncIcon as Sync, Plane} from "lucide-react";
+import {AlertCircle, CheckCircle2, Eye, EyeOff, Plane} from "lucide-react";
 import {AnimatedBackground} from "@/components/AnimatedBackground";
 import Link from "next/link";
 import {useAuth} from "@/context/AuthProvider";
-import {useRouter} from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 import apiClient, {ensureCsrf} from "@/services/apiClient";
 import {SignInRequest} from "@/types/models/SignInRequest";
 import {AxiosError} from "axios";
@@ -19,6 +19,7 @@ interface LoginFormData {
 export const Login: React.FC = () => {
     const {user, loading, refetch} = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         if (!loading && user) {
@@ -34,11 +35,20 @@ export const Login: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (searchParams?.get('signupSuccess') === '1') {
+            setSuccessMsg("Account created. Please sign in to continue.");
+            router.replace('/login');
+        }
+    }, [searchParams, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setErrorMsg(null);
+        setSuccessMsg(null);
 
         const signInRequest: SignInRequest = {
             identifier: formData.identifier,
@@ -57,7 +67,7 @@ export const Login: React.FC = () => {
             if (err instanceof AxiosError) {
                 const errorMessage = err?.response?.data?.error;
                 if (err?.response?.status === 401) {
-                    setErrorMsg(errorMessage || "Invalid credentials. Please check your email or username and password.");
+                    setErrorMsg("The email, username, or password you entered is incorrect. Please try again.");
                 } else if (err?.response?.status === 403) {
                     setErrorMsg("Request blocked (CSRF). Please refresh and try again.")
                 } else if (err?.response?.status === 429) {
@@ -100,19 +110,32 @@ export const Login: React.FC = () => {
                     {/* Logo */}
                     <div className="flex items-center justify-center mb-8">
                         <div className="flex items-center space-x-2">
-                            <div className="relative">
-                                <Plane className="w-8 h-8 text-sky-500"/>
-                                <Sync className="w-4 h-4 text-teal-500 absolute -bottom-1 -right-1"/>
-                            </div>
+                            <Plane className="w-8 h-8 text-sky-500"/>
                             <span className="text-2xl font-bold text-slate-800">TravelSync</span>
                         </div>
                     </div>
 
+                    {/* Show success message if exists */}
+                    {successMsg && (
+                        <div
+                            className="mb-4 flex items-start gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm"
+                            role="status"
+                            aria-live="polite"
+                        >
+                            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true"/>
+                            <span>{successMsg}</span>
+                        </div>
+                    )}
+
                     {/* Show error message if exists */}
                     {errorMsg && (
-                        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm" role="alert">
-                            <strong className="font-bold">Error: </strong>
-                            <span className="block sm:inline">{errorMsg}</span>
+                        <div
+                            className="mb-4 flex items-start gap-2 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm"
+                            role="alert"
+                            aria-live="polite"
+                        >
+                            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true"/>
+                            <span>{errorMsg}</span>
                         </div>
                     )}
 

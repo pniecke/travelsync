@@ -1,4 +1,4 @@
-import {ChevronLeft, ChevronRight, Eye, EyeOff, FolderSyncIcon as Sync, Plane} from "lucide-react"
+import {AlertCircle, ChevronLeft, ChevronRight, Eye, EyeOff, Plane} from "lucide-react"
 import React, {useEffect, useState} from "react";
 import {AnimatedBackground} from "@/components/AnimatedBackground";
 import Link from "next/link";
@@ -37,6 +37,7 @@ export const Signup: React.FC = () => {
     })
     const [showPassword, setShowPassword] = useState(false);
     const [passwordStrength, setPasswordStrength] = useState(0);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const calculatePasswordStrength = (password: string) => {
         let strength = 0;
@@ -67,14 +68,15 @@ export const Signup: React.FC = () => {
 
     const nextStep = (e: React.FormEvent) => {
         e.preventDefault();
+        setErrorMsg(null);
 
         if (currentStep === 1) {
             if (formData.password.length < 8) {
-                alert("Password must be at least 8 characters long.");
+                setErrorMsg("Password must be at least 8 characters long.");
                 return;
             }
             if (formData.password !== formData.confirmPassword) {
-                alert("Passwords do not match.");
+                setErrorMsg("Passwords do not match.");
                 return;
             }
         }
@@ -84,13 +86,17 @@ export const Signup: React.FC = () => {
 
     const prevStep = (e: React.FormEvent) => {
         e.preventDefault();
+        setErrorMsg(null);
         setCurrentStep((prev) => Math.max(prev - 1, 1));
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setErrorMsg(null);
+
         if (formData.password !== formData.confirmPassword) {
-            alert("Passwords do not match!");
+            setErrorMsg("Passwords do not match.");
+            setCurrentStep(1);
             return;
         }
 
@@ -103,20 +109,19 @@ export const Signup: React.FC = () => {
         try {
             await ensureCsrf();
             await apiClient.post('/auth/signup', signUpRequest);
-            alert("Account created successfully! Please sign in.");
-            router.replace('/login');
+            router.replace('/login?signupSuccess=1');
         } catch (err: unknown) {
             if (err instanceof AxiosError) {
                 const errorMessage = err?.response?.data?.error;
                 if (err?.response?.status === 409) {
-                    alert(errorMessage || "A user with that email or username already exists.");
+                    setErrorMsg(errorMessage || "A user with that email or username already exists.");
                 } else if (err?.response?.status === 400) {
-                    alert(errorMessage || "Invalid input. Please check your information.");
+                    setErrorMsg(errorMessage || "Invalid input. Please check your information.");
                 } else {
-                    alert("Sign up failed. Please try again.");
+                    setErrorMsg("Sign up failed. Please try again.");
                 }
             } else {
-                alert("Sign up failed. Please try again.");
+                setErrorMsg("Sign up failed. Please try again.");
             }
         }
     }
@@ -306,10 +311,7 @@ export const Signup: React.FC = () => {
                     {/* Logo */}
                     <div className="flex items-center justify-center mb-8">
                         <div className="flex items-center space-x-2">
-                            <div className="relative">
-                                <Plane className="w-8 h-8 text-sky-500"/>
-                                <Sync className="w-4 h-4 text-teal-500 absolute -bottom-1 -right-1"/>
-                            </div>
+                            <Plane className="w-8 h-8 text-sky-500"/>
                             <span className="text-2xl font-bold text-slate-800">TravelSync</span>
                         </div>
                     </div>
@@ -330,6 +332,18 @@ export const Signup: React.FC = () => {
                             </React.Fragment>
                         ))}
                     </div>
+
+                    {/* Show error message if exists */}
+                    {errorMsg && (
+                        <div
+                            className="mb-4 flex items-start gap-2 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm"
+                            role="alert"
+                            aria-live="polite"
+                        >
+                            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true"/>
+                            <span>{errorMsg}</span>
+                        </div>
+                    )}
 
                     {/* Step Content */}
                     <form onSubmit={currentStep === 3 ? handleSubmit : nextStep} className="space-y-6">
