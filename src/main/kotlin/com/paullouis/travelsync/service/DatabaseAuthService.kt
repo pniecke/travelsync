@@ -48,9 +48,7 @@ class DatabaseAuthService(
         if (!EMAIL_PATTERN.matches(email)) {
             throw IllegalArgumentException("Invalid email address")
         }
-        if (rawPassword.length < 8) {
-            throw IllegalArgumentException("Password must be at least 8 characters long")
-        }
+        validatePassword(rawPassword)
         if (userRepository.existsByEmail(email)) {
             // Don't echo the email back to avoid trivial scraping. Username
             // collisions can be specific because usernames are public.
@@ -152,4 +150,29 @@ open class DuplicateUserException(message: String) : RuntimeException(message)
 class DuplicateEmailException(message: String) : DuplicateUserException(message)
 
 private val EMAIL_PATTERN = Regex("^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$")
+
+const val MIN_PASSWORD_LENGTH = 12
+
+// BCrypt silently truncates to 72 bytes; reject longer inputs so two passwords
+// with identical first 72 bytes can't authenticate against the same hash.
+const val MAX_PASSWORD_BYTES = 72
+
+private val COMMON_PASSWORDS = setOf(
+    "password", "password1", "password12", "password123", "passw0rd123",
+    "12345678", "123456789", "1234567890", "qwertyuiop", "qwerty1234",
+    "letmein123", "welcome1234", "admin1234", "iloveyou123", "monkey1234",
+    "football12", "baseball12", "trustno1234", "abc12345678", "p@ssw0rd123",
+)
+
+internal fun validatePassword(rawPassword: String) {
+    if (rawPassword.length < MIN_PASSWORD_LENGTH) {
+        throw IllegalArgumentException("Password must be at least $MIN_PASSWORD_LENGTH characters long")
+    }
+    if (rawPassword.toByteArray(Charsets.UTF_8).size > MAX_PASSWORD_BYTES) {
+        throw IllegalArgumentException("Password is too long (maximum $MAX_PASSWORD_BYTES bytes)")
+    }
+    if (rawPassword.lowercase() in COMMON_PASSWORDS) {
+        throw IllegalArgumentException("Password is too common. Please choose something less guessable.")
+    }
+}
 

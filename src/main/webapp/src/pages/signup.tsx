@@ -41,11 +41,12 @@ export const Signup: React.FC = () => {
 
     const calculatePasswordStrength = (password: string) => {
         let strength = 0;
-        if (password.length >= 8) strength += 25;
-        if (/[A-Z]/.test(password)) strength += 25
-        if (/[0-9]/.test(password)) strength += 25
-        if (/[^A-Za-z0-9]/.test(password)) strength += 25
-        return strength
+        if (password.length >= 12) strength += 40;
+        if (password.length >= 16) strength += 20;
+        if (/[A-Z]/.test(password) && /[a-z]/.test(password)) strength += 20;
+        if (/[0-9]/.test(password)) strength += 10;
+        if (/[^A-Za-z0-9]/.test(password)) strength += 10;
+        return Math.min(strength, 100);
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -71,8 +72,12 @@ export const Signup: React.FC = () => {
         setErrorMsg(null);
 
         if (currentStep === 1) {
-            if (formData.password.length < 8) {
-                setErrorMsg("Password must be at least 8 characters long.");
+            if (formData.password.length < 12) {
+                setErrorMsg("Password must be at least 12 characters long.");
+                return;
+            }
+            if (formData.password.length > 72) {
+                setErrorMsg("Password is too long. Please use 72 characters or fewer.");
                 return;
             }
             if (formData.password !== formData.confirmPassword) {
@@ -187,6 +192,8 @@ export const Signup: React.FC = () => {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleInputChange}
+                                    minLength={12}
+                                    maxLength={72}
                                     className="w-full px-3 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800"
                                     required
                                 />
@@ -203,7 +210,7 @@ export const Signup: React.FC = () => {
                                 </button>
                             </div>
 
-                            {formData.password && (
+                            {formData.password ? (
                                 <div className="mt-2">
                                     <div className="flex justify-between text-xs text-slate-600 mb-1">
                                         <span>Password strength</span>
@@ -216,6 +223,8 @@ export const Signup: React.FC = () => {
                                         />
                                     </div>
                                 </div>
+                            ) : (
+                                <p className="mt-1 text-xs text-slate-500">At least 12 characters.</p>
                             )}
                         </div>
 

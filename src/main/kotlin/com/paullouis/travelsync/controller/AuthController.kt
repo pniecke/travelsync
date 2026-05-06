@@ -7,6 +7,7 @@ import com.paullouis.travelsync.service.DatabaseAuthService
 import com.paullouis.travelsync.service.DuplicateEmailException
 import com.paullouis.travelsync.service.DuplicateUserException
 import com.paullouis.travelsync.service.LoginAttemptService
+import com.paullouis.travelsync.service.LoginIpThrottle
 import com.paullouis.travelsync.service.SignupAttemptService
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*
 class AuthController(
     private val authService: DatabaseAuthService,
     private val loginAttemptService: LoginAttemptService,
+    private val loginIpThrottle: LoginIpThrottle,
     private val signupAttemptService: SignupAttemptService,
 ) {
 
@@ -79,9 +81,23 @@ class AuthController(
         request: HttpServletRequest,
         response: HttpServletResponse
     ): ResponseEntity<Map<String, Any>> {
+        val clientIp = request.remoteAddr ?: "unknown"
+
+        if (loginIpThrottle.isBlocked(clientIp)) {
+            val retryAfter = loginIpThrottle.retryAfterSeconds(clientIp)
+            logger.warn("Sign in blocked - IP throttle for {} (retry in ${retryAfter}s)", clientIp)
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, retryAfter.toString())
+                .body(mapOf(
+                    "error" to "Too many failed sign-in attempts from this network. Try again later.",
+                    "retryAfterSeconds" to retryAfter,
+                ))
+        }
+
         return try {
             val user = authService.localSignIn(signInRequest, request, response)
             logger.info("User signed in successfully: ${signInRequest.identifier}")
+            loginIpThrottle.loginSucceeded(clientIp)
             ResponseEntity.ok(mapOf(
                 "message" to "Login successful",
                 "user" to MeResponse(user)
@@ -97,6 +113,7 @@ class AuthController(
                 ))
         } catch (e: BadCredentialsException) {
             logger.warn("Sign in failed - bad credentials: ${signInRequest.identifier}")
+            loginIpThrottle.loginFailed(clientIp)
             ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(mapOf("error" to (e.message ?: "Invalid credentials")))
         } catch (e: IllegalStateException) {
