@@ -8,4 +8,5 @@ models/Trip.ts
 models/TripStatus.ts
 models/User.ts
 models/UserRole.ts
+models/index.ts
 runtime.ts

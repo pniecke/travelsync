@@ -12,7 +12,7 @@
  * Do not edit the class manually.
  */
 
-import { exists, mapValues } from '../runtime';
+import { mapValues } from '../runtime';
 /**
  * 
  * @export
@@ -32,23 +32,21 @@ export interface SignUpRequest {
      */
     password: string;
     /**
-     * Optional email address
+     * Email address for the new account
      * @type {string}
      * @memberof SignUpRequest
      */
-    email: string | null;
+    email: string;
 }
 
 /**
  * Check if a given object implements the SignUpRequest interface.
  */
-export function instanceOfSignUpRequest(value: object): boolean {
-    let isInstance = true;
-    isInstance = isInstance && "username" in value;
-    isInstance = isInstance && "password" in value;
-    isInstance = isInstance && "email" in value;
-
-    return isInstance;
+export function instanceOfSignUpRequest(value: object): value is SignUpRequest {
+    if (!('username' in value) || value['username'] === undefined) return false;
+    if (!('password' in value) || value['password'] === undefined) return false;
+    if (!('email' in value) || value['email'] === undefined) return false;
+    return true;
 }
 
 export function SignUpRequestFromJSON(json: any): SignUpRequest {
@@ -56,7 +54,7 @@ export function SignUpRequestFromJSON(json: any): SignUpRequest {
 }
 
 export function SignUpRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): SignUpRequest {
-    if ((json === undefined) || (json === null)) {
+    if (json == null) {
         return json;
     }
     return {
@@ -67,18 +65,20 @@ export function SignUpRequestFromJSONTyped(json: any, ignoreDiscriminator: boole
     };
 }
 
-export function SignUpRequestToJSON(value?: SignUpRequest | null): any {
-    if (value === undefined) {
-        return undefined;
+export function SignUpRequestToJSON(json: any): SignUpRequest {
+    return SignUpRequestToJSONTyped(json, false);
+}
+
+export function SignUpRequestToJSONTyped(value?: SignUpRequest | null, ignoreDiscriminator: boolean = false): any {
+    if (value == null) {
+        return value;
     }
-    if (value === null) {
-        return null;
-    }
+
     return {
         
-        'username': value.username,
-        'password': value.password,
-        'email': value.email,
+        'username': value['username'],
+        'password': value['password'],
+        'email': value['email'],
     };
 }
 

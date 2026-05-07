@@ -26,6 +26,17 @@ export const TripStatus = {
 export type TripStatus = typeof TripStatus[keyof typeof TripStatus];
 
 
+export function instanceOfTripStatus(value: any): boolean {
+    for (const key in TripStatus) {
+        if (Object.prototype.hasOwnProperty.call(TripStatus, key)) {
+            if (TripStatus[key as keyof typeof TripStatus] === value) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 export function TripStatusFromJSON(json: any): TripStatus {
     return TripStatusFromJSONTyped(json, false);
 }
@@ -36,5 +47,9 @@ export function TripStatusFromJSONTyped(json: any, ignoreDiscriminator: boolean)
 
 export function TripStatusToJSON(value?: TripStatus | null): any {
     return value as any;
+}
+
+export function TripStatusToJSONTyped(value: any, ignoreDiscriminator: boolean): TripStatus {
+    return value as TripStatus;
 }
 

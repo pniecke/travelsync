@@ -12,25 +12,28 @@
  * Do not edit the class manually.
  */
 
-import { exists, mapValues } from '../runtime';
+import { mapValues } from '../runtime';
+import type { User } from './User';
+import {
+    UserFromJSON,
+    UserFromJSONTyped,
+    UserToJSON,
+    UserToJSONTyped,
+} from './User';
 import type { Expense } from './Expense';
 import {
     ExpenseFromJSON,
     ExpenseFromJSONTyped,
     ExpenseToJSON,
+    ExpenseToJSONTyped,
 } from './Expense';
 import type { TripStatus } from './TripStatus';
 import {
     TripStatusFromJSON,
     TripStatusFromJSONTyped,
     TripStatusToJSON,
+    TripStatusToJSONTyped,
 } from './TripStatus';
-import type { User } from './User';
-import {
-    UserFromJSON,
-    UserFromJSONTyped,
-    UserToJSON,
-} from './User';
 
 /**
  * 
@@ -94,17 +97,17 @@ export interface Trip {
     expenses?: Array<Expense>;
 }
 
+
+
 /**
  * Check if a given object implements the Trip interface.
  */
-export function instanceOfTrip(value: object): boolean {
-    let isInstance = true;
-    isInstance = isInstance && "participants" in value;
-    isInstance = isInstance && "destination" in value;
-    isInstance = isInstance && "startTime" in value;
-    isInstance = isInstance && "status" in value;
-
-    return isInstance;
+export function instanceOfTrip(value: object): value is Trip {
+    if (!('participants' in value) || value['participants'] === undefined) return false;
+    if (!('destination' in value) || value['destination'] === undefined) return false;
+    if (!('startTime' in value) || value['startTime'] === undefined) return false;
+    if (!('status' in value) || value['status'] === undefined) return false;
+    return true;
 }
 
 export function TripFromJSON(json: any): Trip {
@@ -112,41 +115,43 @@ export function TripFromJSON(json: any): Trip {
 }
 
 export function TripFromJSONTyped(json: any, ignoreDiscriminator: boolean): Trip {
-    if ((json === undefined) || (json === null)) {
+    if (json == null) {
         return json;
     }
     return {
         
-        'id': !exists(json, 'id') ? undefined : json['id'],
-        'name': !exists(json, 'name') ? undefined : json['name'],
+        'id': json['id'] == null ? undefined : json['id'],
+        'name': json['name'] == null ? undefined : json['name'],
         'participants': ((json['participants'] as Array<any>).map(UserFromJSON)),
         'destination': json['destination'],
         'startTime': json['startTime'],
-        'endTime': !exists(json, 'endTime') ? undefined : json['endTime'],
-        'description': !exists(json, 'description') ? undefined : json['description'],
+        'endTime': json['endTime'] == null ? undefined : json['endTime'],
+        'description': json['description'] == null ? undefined : json['description'],
         'status': TripStatusFromJSON(json['status']),
-        'expenses': !exists(json, 'expenses') ? undefined : ((json['expenses'] as Array<any>).map(ExpenseFromJSON)),
+        'expenses': json['expenses'] == null ? undefined : ((json['expenses'] as Array<any>).map(ExpenseFromJSON)),
     };
 }
 
-export function TripToJSON(value?: Trip | null): any {
-    if (value === undefined) {
-        return undefined;
+export function TripToJSON(json: any): Trip {
+    return TripToJSONTyped(json, false);
+}
+
+export function TripToJSONTyped(value?: Trip | null, ignoreDiscriminator: boolean = false): any {
+    if (value == null) {
+        return value;
     }
-    if (value === null) {
-        return null;
-    }
+
     return {
         
-        'id': value.id,
-        'name': value.name,
-        'participants': ((value.participants as Array<any>).map(UserToJSON)),
-        'destination': value.destination,
-        'startTime': value.startTime,
-        'endTime': value.endTime,
-        'description': value.description,
-        'status': TripStatusToJSON(value.status),
-        'expenses': value.expenses === undefined ? undefined : ((value.expenses as Array<any>).map(ExpenseToJSON)),
+        'id': value['id'],
+        'name': value['name'],
+        'participants': ((value['participants'] as Array<any>).map(UserToJSON)),
+        'destination': value['destination'],
+        'startTime': value['startTime'],
+        'endTime': value['endTime'],
+        'description': value['description'],
+        'status': TripStatusToJSON(value['status']),
+        'expenses': value['expenses'] == null ? undefined : ((value['expenses'] as Array<any>).map(ExpenseToJSON)),
     };
 }
 

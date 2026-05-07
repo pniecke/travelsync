@@ -12,19 +12,21 @@
  * Do not edit the class manually.
  */
 
-import { exists, mapValues } from '../runtime';
-import type { Currency } from './Currency';
-import {
-    CurrencyFromJSON,
-    CurrencyFromJSONTyped,
-    CurrencyToJSON,
-} from './Currency';
+import { mapValues } from '../runtime';
 import type { User } from './User';
 import {
     UserFromJSON,
     UserFromJSONTyped,
     UserToJSON,
+    UserToJSONTyped,
 } from './User';
+import type { Currency } from './Currency';
+import {
+    CurrencyFromJSON,
+    CurrencyFromJSONTyped,
+    CurrencyToJSON,
+    CurrencyToJSONTyped,
+} from './Currency';
 
 /**
  * 
@@ -88,18 +90,18 @@ export interface Expense {
     tripId: string;
 }
 
+
+
 /**
  * Check if a given object implements the Expense interface.
  */
-export function instanceOfExpense(value: object): boolean {
-    let isInstance = true;
-    isInstance = isInstance && "amount" in value;
-    isInstance = isInstance && "currency" in value;
-    isInstance = isInstance && "dateOfExpense" in value;
-    isInstance = isInstance && "createdBy" in value;
-    isInstance = isInstance && "tripId" in value;
-
-    return isInstance;
+export function instanceOfExpense(value: object): value is Expense {
+    if (!('amount' in value) || value['amount'] === undefined) return false;
+    if (!('currency' in value) || value['currency'] === undefined) return false;
+    if (!('dateOfExpense' in value) || value['dateOfExpense'] === undefined) return false;
+    if (!('createdBy' in value) || value['createdBy'] === undefined) return false;
+    if (!('tripId' in value) || value['tripId'] === undefined) return false;
+    return true;
 }
 
 export function ExpenseFromJSON(json: any): Expense {
@@ -107,41 +109,43 @@ export function ExpenseFromJSON(json: any): Expense {
 }
 
 export function ExpenseFromJSONTyped(json: any, ignoreDiscriminator: boolean): Expense {
-    if ((json === undefined) || (json === null)) {
+    if (json == null) {
         return json;
     }
     return {
         
-        'id': !exists(json, 'id') ? undefined : json['id'],
-        'description': !exists(json, 'description') ? undefined : json['description'],
+        'id': json['id'] == null ? undefined : json['id'],
+        'description': json['description'] == null ? undefined : json['description'],
         'amount': json['amount'],
         'currency': CurrencyFromJSON(json['currency']),
         'dateOfExpense': json['dateOfExpense'],
-        'lastModified': !exists(json, 'lastModified') ? undefined : json['lastModified'],
+        'lastModified': json['lastModified'] == null ? undefined : json['lastModified'],
         'createdBy': UserFromJSON(json['createdBy']),
-        'paidBy': !exists(json, 'paidBy') ? undefined : UserFromJSON(json['paidBy']),
+        'paidBy': json['paidBy'] == null ? undefined : UserFromJSON(json['paidBy']),
         'tripId': json['tripId'],
     };
 }
 
-export function ExpenseToJSON(value?: Expense | null): any {
-    if (value === undefined) {
-        return undefined;
+export function ExpenseToJSON(json: any): Expense {
+    return ExpenseToJSONTyped(json, false);
+}
+
+export function ExpenseToJSONTyped(value?: Expense | null, ignoreDiscriminator: boolean = false): any {
+    if (value == null) {
+        return value;
     }
-    if (value === null) {
-        return null;
-    }
+
     return {
         
-        'id': value.id,
-        'description': value.description,
-        'amount': value.amount,
-        'currency': CurrencyToJSON(value.currency),
-        'dateOfExpense': value.dateOfExpense,
-        'lastModified': value.lastModified,
-        'createdBy': UserToJSON(value.createdBy),
-        'paidBy': UserToJSON(value.paidBy),
-        'tripId': value.tripId,
+        'id': value['id'],
+        'description': value['description'],
+        'amount': value['amount'],
+        'currency': CurrencyToJSON(value['currency']),
+        'dateOfExpense': value['dateOfExpense'],
+        'lastModified': value['lastModified'],
+        'createdBy': UserToJSON(value['createdBy']),
+        'paidBy': UserToJSON(value['paidBy']),
+        'tripId': value['tripId'],
     };
 }
 

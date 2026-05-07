@@ -12,7 +12,7 @@
  * Do not edit the class manually.
  */
 
-import { exists, mapValues } from '../runtime';
+import { mapValues } from '../runtime';
 /**
  * 
  * @export
@@ -36,12 +36,10 @@ export interface SignInRequest {
 /**
  * Check if a given object implements the SignInRequest interface.
  */
-export function instanceOfSignInRequest(value: object): boolean {
-    let isInstance = true;
-    isInstance = isInstance && "identifier" in value;
-    isInstance = isInstance && "password" in value;
-
-    return isInstance;
+export function instanceOfSignInRequest(value: object): value is SignInRequest {
+    if (!('identifier' in value) || value['identifier'] === undefined) return false;
+    if (!('password' in value) || value['password'] === undefined) return false;
+    return true;
 }
 
 export function SignInRequestFromJSON(json: any): SignInRequest {
@@ -49,7 +47,7 @@ export function SignInRequestFromJSON(json: any): SignInRequest {
 }
 
 export function SignInRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): SignInRequest {
-    if ((json === undefined) || (json === null)) {
+    if (json == null) {
         return json;
     }
     return {
@@ -59,17 +57,19 @@ export function SignInRequestFromJSONTyped(json: any, ignoreDiscriminator: boole
     };
 }
 
-export function SignInRequestToJSON(value?: SignInRequest | null): any {
-    if (value === undefined) {
-        return undefined;
+export function SignInRequestToJSON(json: any): SignInRequest {
+    return SignInRequestToJSONTyped(json, false);
+}
+
+export function SignInRequestToJSONTyped(value?: SignInRequest | null, ignoreDiscriminator: boolean = false): any {
+    if (value == null) {
+        return value;
     }
-    if (value === null) {
-        return null;
-    }
+
     return {
         
-        'identifier': value.identifier,
-        'password': value.password,
+        'identifier': value['identifier'],
+        'password': value['password'],
     };
 }
 

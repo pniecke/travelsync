@@ -228,14 +228,19 @@ components:
           example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
         name:
           type: string
+          minLength: 1
+          maxLength: 120
           description: Name of the trip
           example: "Summer Vacation 2025"
         participants:
           type: array
+          maxItems: 100
           items:
             $ref: '#/components/schemas/User'
         destination:
           type: string
+          minLength: 1
+          maxLength: 200
           description: Destination of the trip
           example: "Sardinia, Italy"
         startTime:
@@ -250,12 +255,14 @@ components:
           example: "2025-07-20T18:00:00"
         description:
           type: string
+          maxLength: 2000
           description: Description of the trip
           example: "A relaxing summer vacation in Sardinia."
         status:
           $ref: '#/components/schemas/TripStatus'
         expenses:
           type: array
+          maxItems: 1000
           items:
             $ref: '#/components/schemas/Expense'
 
@@ -271,35 +278,47 @@ components:
           example: "123e4567-e89b-12d3-a456-426614174000"
         username:
           type: string
+          minLength: 3
+          maxLength: 64
+          pattern: '^[A-Za-z0-9._-]+$'
           description: Username of the user
           example: "john_doe"
         firstName:
           type: string
+          maxLength: 100
           description: First name of the user
           example: "John"
         lastName:
           type: string
+          maxLength: 100
           description: Last name of the user
           example: "Doe"
         email:
           type: string
           format: email
+          maxLength: 254
           description: Email address of the user
           example: "john.doe@sample.ch"
         mobile:
           type: string
+          maxLength: 32
+          pattern: '^[+0-9 ()-]+$'
           description: Mobile phone number of the user
           example: "+41 79 123 45 67"
         locale:
           type: string
+          maxLength: 16
           description: Locale of the user
           example: "en-US"
         roles:
           type: array
+          maxItems: 16
           items:
             $ref: '#/components/schemas/UserRole'
         password:
           type: string
+          minLength: 12
+          maxLength: 72
           description: Password of the user (write-only)
           writeOnly: true
           example: "securepassword"
@@ -320,11 +339,14 @@ components:
           example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
         description:
           type: string
+          maxLength: 500
           description: Description of the expense
           example: "Hotel accommodation"
         amount:
           type: number
           format: double
+          minimum: 0
+          maximum: 1000000000
           description: Amount of the expense
           example: 150.75
         currency:
@@ -376,18 +398,23 @@ components:
       properties:
         username:
           type: string
+          minLength: 3
+          maxLength: 64
+          pattern: '^[A-Za-z0-9._-]+$'
           description: Username for the new account
           example: "new_user"
         password:
           type: string
+          minLength: 12
+          maxLength: 72
           description: Password for the new account
           example: "securepassword123"
         email:
           type: string
           format: email
-          description: Optional email address
+          maxLength: 254
+          description: Email address for the new account
           example: "user@example.com"
-          nullable: true
 
     SignInRequest:
       type: object
@@ -397,10 +424,14 @@ components:
       properties:
         identifier:
           type: string
+          minLength: 3
+          maxLength: 254
           description: Email address or username for authentication
           example: "existing@user.ch"
         password:
           type: string
+          minLength: 1
+          maxLength: 72
           description: Password for authentication
           example: "securepassword123"
 

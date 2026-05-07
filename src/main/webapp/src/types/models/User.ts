@@ -12,12 +12,13 @@
  * Do not edit the class manually.
  */
 
-import { exists, mapValues } from '../runtime';
+import { mapValues } from '../runtime';
 import type { UserRole } from './UserRole';
 import {
     UserRoleFromJSON,
     UserRoleFromJSONTyped,
     UserRoleToJSON,
+    UserRoleToJSONTyped,
 } from './UserRole';
 
 /**
@@ -85,11 +86,9 @@ export interface User {
 /**
  * Check if a given object implements the User interface.
  */
-export function instanceOfUser(value: object): boolean {
-    let isInstance = true;
-    isInstance = isInstance && "username" in value;
-
-    return isInstance;
+export function instanceOfUser(value: object): value is User {
+    if (!('username' in value) || value['username'] === undefined) return false;
+    return true;
 }
 
 export function UserFromJSON(json: any): User {
@@ -97,41 +96,43 @@ export function UserFromJSON(json: any): User {
 }
 
 export function UserFromJSONTyped(json: any, ignoreDiscriminator: boolean): User {
-    if ((json === undefined) || (json === null)) {
+    if (json == null) {
         return json;
     }
     return {
         
-        'id': !exists(json, 'id') ? undefined : json['id'],
+        'id': json['id'] == null ? undefined : json['id'],
         'username': json['username'],
-        'firstName': !exists(json, 'firstName') ? undefined : json['firstName'],
-        'lastName': !exists(json, 'lastName') ? undefined : json['lastName'],
-        'email': !exists(json, 'email') ? undefined : json['email'],
-        'mobile': !exists(json, 'mobile') ? undefined : json['mobile'],
-        'locale': !exists(json, 'locale') ? undefined : json['locale'],
-        'roles': !exists(json, 'roles') ? undefined : ((json['roles'] as Array<any>).map(UserRoleFromJSON)),
-        'password': !exists(json, 'password') ? undefined : json['password'],
+        'firstName': json['firstName'] == null ? undefined : json['firstName'],
+        'lastName': json['lastName'] == null ? undefined : json['lastName'],
+        'email': json['email'] == null ? undefined : json['email'],
+        'mobile': json['mobile'] == null ? undefined : json['mobile'],
+        'locale': json['locale'] == null ? undefined : json['locale'],
+        'roles': json['roles'] == null ? undefined : ((json['roles'] as Array<any>).map(UserRoleFromJSON)),
+        'password': json['password'] == null ? undefined : json['password'],
     };
 }
 
-export function UserToJSON(value?: User | null): any {
-    if (value === undefined) {
-        return undefined;
+export function UserToJSON(json: any): User {
+    return UserToJSONTyped(json, false);
+}
+
+export function UserToJSONTyped(value?: User | null, ignoreDiscriminator: boolean = false): any {
+    if (value == null) {
+        return value;
     }
-    if (value === null) {
-        return null;
-    }
+
     return {
         
-        'id': value.id,
-        'username': value.username,
-        'firstName': value.firstName,
-        'lastName': value.lastName,
-        'email': value.email,
-        'mobile': value.mobile,
-        'locale': value.locale,
-        'roles': value.roles === undefined ? undefined : ((value.roles as Array<any>).map(UserRoleToJSON)),
-        'password': value.password,
+        'id': value['id'],
+        'username': value['username'],
+        'firstName': value['firstName'],
+        'lastName': value['lastName'],
+        'email': value['email'],
+        'mobile': value['mobile'],
+        'locale': value['locale'],
+        'roles': value['roles'] == null ? undefined : ((value['roles'] as Array<any>).map(UserRoleToJSON)),
+        'password': value['password'],
     };
 }
 

@@ -20,6 +20,7 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
@@ -74,11 +75,16 @@ class SecurityConfig(
 
         http
             .authorizeHttpRequests { auth ->
+                // Use AntPathRequestMatcher explicitly. With both the H2 console
+                // servlet and the DispatcherServlet (mounted at /api/*) present,
+                // String-only matchers cannot decide which servlet they target.
                 auth
-                    .requestMatchers("/h2-console/**").permitAll()
-                    .requestMatchers("/api/health").permitAll()
-                    .requestMatchers("/api/auth/signup", "/api/auth/signin", "/api/auth/csrf").permitAll()
-                    .requestMatchers("/api/**").authenticated()
+                    .requestMatchers(antMatcher("/h2-console/**")).permitAll()
+                    .requestMatchers(antMatcher("/api/health")).permitAll()
+                    .requestMatchers(antMatcher("/api/auth/signup")).permitAll()
+                    .requestMatchers(antMatcher("/api/auth/signin")).permitAll()
+                    .requestMatchers(antMatcher("/api/auth/csrf")).permitAll()
+                    .requestMatchers(antMatcher("/api/**")).authenticated()
                     .anyRequest().permitAll()
             }
             .headers { headers ->
@@ -89,6 +95,25 @@ class SecurityConfig(
                         if (h2ConsoleEnabled) fo.sameOrigin() else fo.deny()
                     }
                     .xssProtection { it.disable() } // Modern browsers have this built-in
+                    .contentTypeOptions { } // X-Content-Type-Options: nosniff
+                    .contentSecurityPolicy { csp ->
+                        // The backend serves JSON; the only HTML it emits is Spring
+                        // error pages (and the H2 console in dev). Lock everything
+                        // down to same-origin and forbid framing.
+                        val frameAncestors = if (h2ConsoleEnabled) "'self'" else "'none'"
+                        csp.policyDirectives(
+                            "default-src 'self'; " +
+                                "script-src 'self'; " +
+                                "style-src 'self' 'unsafe-inline'; " +
+                                "img-src 'self' data:; " +
+                                "font-src 'self' data:; " +
+                                "connect-src 'self'; " +
+                                "object-src 'none'; " +
+                                "base-uri 'self'; " +
+                                "form-action 'self'; " +
+                                "frame-ancestors $frameAncestors"
+                        )
+                    }
                     .httpStrictTransportSecurity { hsts ->
                         hsts
                             .includeSubDomains(true)
@@ -126,7 +151,7 @@ class SecurityConfig(
                 csrf
                     .csrfTokenRepository(tokenRepository)
                     .csrfTokenRequestHandler(requestHandler)
-                    .ignoringRequestMatchers("/h2-console/**")
+                    .ignoringRequestMatchers(antMatcher("/h2-console/**"))
             }
             .sessionManagement { session ->
                 session

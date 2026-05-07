@@ -124,6 +124,102 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.10.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-spring-controllers-and-models</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/travelsync-api.yaml</inputSpec>
+                            <generatorName>kotlin-spring</generatorName>
+                            <output>${project.basedir}</output>
+                            <apiPackage>com.paullouis.travelsync.controller</apiPackage>
+                            <modelPackage>com.paullouis.travelsync.model.generated</modelPackage>
+                            <generateApis>true</generateApis>
+                            <generateModels>true</generateModels>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <skipOverwrite>false</skipOverwrite>
+                            <ignoreFileOverride>${project.basedir}/.openapi-generator-ignore</ignoreFileOverride>
+                            <configOptions>
+                                <useTags>true</useTags>
+                                <interfaceOnly>true</interfaceOnly>
+                                <delegatePattern>false</delegatePattern>
+                                <serializationLibrary>jackson</serializationLibrary>
+                                <enumPropertyNaming>UPPERCASE</enumPropertyNaming>
+                                <exceptionHandler>false</exceptionHandler>
+                                <documentationProvider>springdoc</documentationProvider>
+                                <swaggerAnnotations>true</swaggerAnnotations>
+                                <useBeanValidation>true</useBeanValidation>
+                                <performBeanValidation>true</performBeanValidation>
+                                <useSpringBoot3>true</useSpringBoot3>
+                            </configOptions>
+                            <typeMappings>
+                                <typeMapping>string+locale=Locale</typeMapping>
+                                <typeMapping>local-date-time=LocalDateTime</typeMapping>
+                            </typeMappings>
+                            <importMappings>
+                                <importMapping>Locale=java.util.Locale</importMapping>
+                            </importMappings>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-typescript-models</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/travelsync-api.yaml</inputSpec>
+                            <generatorName>typescript-fetch</generatorName>
+                            <output>${project.basedir}/src/main/webapp/src/types</output>
+                            <generateApis>false</generateApis>
+                            <generateModels>true</generateModels>
+                            <generateSupportingFiles>true</generateSupportingFiles>
+                            <skipOverwrite>false</skipOverwrite>
+                            <configOptions>
+                                <modelPropertyNaming>camelCase</modelPropertyNaming>
+                                <supportsES6>true</supportsES6>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!--
+                    The kotlin-spring generator still emits `javax.validation`
+                    imports even with useSpringBoot3=true. Rewrite to jakarta
+                    so the generated code compiles on Spring Boot 3. Must run
+                    in generate-sources after openapi-generator and before
+                    kotlin-maven-plugin's kapt.
+                -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>rewrite-javax-to-jakarta</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <replace token="javax.validation" value="jakarta.validation" dir="${project.basedir}/src/main/kotlin/com/paullouis/travelsync">
+                                    <include name="**/*.kt"/>
+                                </replace>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.version}</version>
@@ -200,72 +296,6 @@
                         <version>${kotlin.version}</version>
                     </dependency>
                 </dependencies>
-            </plugin>
-            <plugin>
-                <groupId>org.openapitools</groupId>
-                <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>6.6.0</version>
-                <executions>
-                    <execution>
-                        <id>generate-spring-controllers-and-models</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <inputSpec>${project.basedir}/src/main/resources/travelsync-api.yaml</inputSpec>
-                            <generatorName>kotlin-spring</generatorName>
-                            <output>${project.basedir}</output>
-                            <apiPackage>com.paullouis.travelsync.controller</apiPackage>
-                            <modelPackage>com.paullouis.travelsync.model.generated</modelPackage>
-                            <generateApis>true</generateApis>
-                            <generateModels>true</generateModels>
-                            <generateApiTests>false</generateApiTests>
-                            <generateModelTests>false</generateModelTests>
-                            <generateSupportingFiles>false</generateSupportingFiles>
-                            <skipOverwrite>false</skipOverwrite>
-                            <ignoreFileOverride>${project.basedir}/.openapi-generator-ignore</ignoreFileOverride>
-                            <configOptions>
-                                <useTags>true</useTags>
-                                <interfaceOnly>true</interfaceOnly>
-                                <delegatePattern>false</delegatePattern>
-                                <serializationLibrary>jackson</serializationLibrary>
-                                <enumPropertyNaming>UPPERCASE</enumPropertyNaming>
-                                <exceptionHandler>false</exceptionHandler>
-                                <documentationProvider>springdoc</documentationProvider>
-                                <swaggerAnnotations>true</swaggerAnnotations>
-                                <useBeanValidation>false</useBeanValidation>
-                            </configOptions>
-                            <typeMappings>
-                                <typeMapping>string+locale=Locale</typeMapping>
-                                <typeMapping>local-date-time=LocalDateTime</typeMapping>
-                            </typeMappings>
-                            <importMappings>
-                                <importMapping>Locale=java.util.Locale</importMapping>
-                            </importMappings>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>generate-typescript-models</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <inputSpec>${project.basedir}/src/main/resources/travelsync-api.yaml</inputSpec>
-                            <generatorName>typescript-fetch</generatorName>
-                            <output>${project.basedir}/src/main/webapp/src/types</output>
-                            <generateApis>false</generateApis>
-                            <generateModels>true</generateModels>
-                            <generateSupportingFiles>true</generateSupportingFiles>
-                            <skipOverwrite>false</skipOverwrite>
-                            <configOptions>
-                                <modelPropertyNaming>camelCase</modelPropertyNaming>
-                                <supportsES6>true</supportsES6>
-                            </configOptions>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

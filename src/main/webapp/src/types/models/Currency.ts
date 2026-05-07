@@ -26,6 +26,17 @@ export const Currency = {
 export type Currency = typeof Currency[keyof typeof Currency];
 
 
+export function instanceOfCurrency(value: any): boolean {
+    for (const key in Currency) {
+        if (Object.prototype.hasOwnProperty.call(Currency, key)) {
+            if (Currency[key as keyof typeof Currency] === value) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 export function CurrencyFromJSON(json: any): Currency {
     return CurrencyFromJSONTyped(json, false);
 }
@@ -36,5 +47,9 @@ export function CurrencyFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
 
 export function CurrencyToJSON(value?: Currency | null): any {
     return value as any;
+}
+
+export function CurrencyToJSONTyped(value: any, ignoreDiscriminator: boolean): Currency {
+    return value as Currency;
 }
 

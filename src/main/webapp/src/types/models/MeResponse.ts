@@ -12,12 +12,13 @@
  * Do not edit the class manually.
  */
 
-import { exists, mapValues } from '../runtime';
+import { mapValues } from '../runtime';
 import type { User } from './User';
 import {
     UserFromJSON,
     UserFromJSONTyped,
     UserToJSON,
+    UserToJSONTyped,
 } from './User';
 
 /**
@@ -37,10 +38,8 @@ export interface MeResponse {
 /**
  * Check if a given object implements the MeResponse interface.
  */
-export function instanceOfMeResponse(value: object): boolean {
-    let isInstance = true;
-
-    return isInstance;
+export function instanceOfMeResponse(value: object): value is MeResponse {
+    return true;
 }
 
 export function MeResponseFromJSON(json: any): MeResponse {
@@ -48,25 +47,27 @@ export function MeResponseFromJSON(json: any): MeResponse {
 }
 
 export function MeResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): MeResponse {
-    if ((json === undefined) || (json === null)) {
+    if (json == null) {
         return json;
     }
     return {
         
-        'user': !exists(json, 'user') ? undefined : UserFromJSON(json['user']),
+        'user': json['user'] == null ? undefined : UserFromJSON(json['user']),
     };
 }
 
-export function MeResponseToJSON(value?: MeResponse | null): any {
-    if (value === undefined) {
-        return undefined;
+export function MeResponseToJSON(json: any): MeResponse {
+    return MeResponseToJSONTyped(json, false);
+}
+
+export function MeResponseToJSONTyped(value?: MeResponse | null, ignoreDiscriminator: boolean = false): any {
+    if (value == null) {
+        return value;
     }
-    if (value === null) {
-        return null;
-    }
+
     return {
         
-        'user': UserToJSON(value.user),
+        'user': UserToJSON(value['user']),
     };
 }
 
