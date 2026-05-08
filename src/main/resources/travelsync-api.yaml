@@ -244,7 +244,7 @@ paths:
       tags: [ Expense ]
       operationId: getExpenses
       summary: Get expenses with optional filtering
-      description: Returns a list of expenses, optionally filtered by creator or payer
+      description: Returns a list of expenses, optionally filtered by creator, payer or trip
       security:
         - OidcAuth: [ ]
       parameters:
@@ -260,6 +260,13 @@ paths:
           required: false
           schema:
             type: boolean
+        - name: tripId
+          in: query
+          description: Filter expenses to a single trip
+          required: false
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
           description: List of expenses
@@ -296,6 +303,232 @@ paths:
           description: Bad Request - Invalid expense data
         '401':
           description: Unauthorized - Authentication required
+
+  /expenses/{id}:
+    get:
+      tags: [ Expense ]
+      operationId: getExpense
+      summary: Get a single expense by id
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The expense
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '404':
+          description: Expense not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags: [ Expense ]
+      operationId: deleteExpense
+      summary: Delete an expense (cascades shares)
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Expense deleted
+        '403':
+          description: Forbidden
+        '404':
+          description: Expense not found
+
+  /expenses/{id}/shares:
+    get:
+      tags: [ Expense ]
+      operationId: getExpenseShares
+      summary: List all shares for an expense
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Shares for this expense
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExpenseShare'
+        '404':
+          description: Expense not found
+    put:
+      tags: [ Expense ]
+      operationId: updateExpenseShares
+      summary: Replace all shares for an expense
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExpenseShare'
+      responses:
+        '200':
+          description: Updated shares
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExpenseShare'
+        '400':
+          description: Invalid shares (sum mismatch, non-participant, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: Forbidden
+        '404':
+          description: Expense not found
+
+  /trips/{id}/balances:
+    get:
+      tags: [ Trip ]
+      operationId: getTripBalances
+      summary: Get net balances and suggested settlements for a trip
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Per-currency net balances and suggested settlements
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripBalances'
+        '403':
+          description: Forbidden
+        '404':
+          description: Trip not found
+
+  /trips/{id}/settlements:
+    get:
+      tags: [ Trip ]
+      operationId: getTripSettlements
+      summary: List all settlements for a trip
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Settlements for this trip
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Settlement'
+    post:
+      tags: [ Trip ]
+      operationId: createSettlement
+      summary: Record a settlement (cash payment between participants)
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSettlementRequest'
+      responses:
+        '201':
+          description: Settlement created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+        '400':
+          description: Invalid settlement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: Forbidden
+
+  /trips/{id}/settlements/{settlementId}:
+    delete:
+      tags: [ Trip ]
+      operationId: deleteSettlement
+      summary: Delete a recorded settlement
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deleted
+        '403':
+          description: Forbidden
+        '404':
+          description: Settlement not found
 
   # --- User ------------------------------------------------------------------
   /user/me:
@@ -475,6 +708,170 @@ components:
           format: uuid
           description: Unique identifier of the trip associated with the expense
           example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        shares:
+          type: array
+          maxItems: 100
+          description: Per-participant breakdown of how this expense is split.
+          items:
+            $ref: '#/components/schemas/ExpenseShare'
+
+    ExpenseShareType:
+      type: string
+      enum: [ EQUAL, EXACT, PERCENT ]
+      description: How an expense is split among participants
+      example: "EQUAL"
+
+    ExpenseShare:
+      type: object
+      required:
+        - user
+        - amount
+        - shareType
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the share
+        user:
+          $ref: '#/components/schemas/User'
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000000000
+          description: Absolute amount this user owes for the expense
+          example: 50.00
+        shareType:
+          $ref: '#/components/schemas/ExpenseShareType'
+        shareValue:
+          type: number
+          format: double
+          minimum: 0
+          description: |
+            Percent value when shareType=PERCENT (0-100); null otherwise.
+          example: 25.0
+
+    Settlement:
+      type: object
+      required:
+        - tripId
+        - fromUser
+        - toUser
+        - amount
+        - currency
+        - settledAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the settlement
+        tripId:
+          type: string
+          format: uuid
+        fromUser:
+          $ref: '#/components/schemas/User'
+        toUser:
+          $ref: '#/components/schemas/User'
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000000000
+        currency:
+          $ref: '#/components/schemas/Currency'
+        note:
+          type: string
+          maxLength: 500
+        settledAt:
+          type: string
+          format: local-date-time
+        createdAt:
+          type: string
+          format: local-date-time
+
+    CreateSettlementRequest:
+      type: object
+      required:
+        - fromUserId
+        - toUserId
+        - amount
+        - currency
+      properties:
+        fromUserId:
+          type: string
+          format: uuid
+        toUserId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000000000
+        currency:
+          $ref: '#/components/schemas/Currency'
+        note:
+          type: string
+          maxLength: 500
+        settledAt:
+          type: string
+          format: local-date-time
+
+    UserBalance:
+      type: object
+      required:
+        - user
+        - currency
+        - net
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        net:
+          type: number
+          format: double
+          description: |
+            Net balance for this user in this currency: positive = is owed
+            money; negative = owes money.
+
+    SuggestedSettlement:
+      type: object
+      required:
+        - fromUser
+        - toUser
+        - currency
+        - amount
+      properties:
+        fromUser:
+          $ref: '#/components/schemas/User'
+        toUser:
+          $ref: '#/components/schemas/User'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          type: number
+          format: double
+          minimum: 0
+
+    TripBalances:
+      type: object
+      required:
+        - tripId
+        - balances
+        - suggestedSettlements
+      properties:
+        tripId:
+          type: string
+          format: uuid
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserBalance'
+        suggestedSettlements:
+          type: array
+          items:
+            $ref: '#/components/schemas/SuggestedSettlement'
 
     User:
       type: object

@@ -8,6 +8,7 @@ import com.paullouis.travelsync.model.generated.SignUpRequest
 import com.paullouis.travelsync.service.IDatabaseAuthService
 import com.paullouis.travelsync.service.LoginAttemptService
 import com.paullouis.travelsync.service.LoginIpThrottle
+import com.paullouis.travelsync.service.SecurityEventService
 import com.paullouis.travelsync.service.SignupAttemptService
 import com.paullouis.travelsync.service.exception.SignInRateLimitedException
 import com.paullouis.travelsync.service.exception.SignUpRateLimitedException
@@ -29,6 +30,7 @@ class AuthController(
     private val loginAttemptService: LoginAttemptService,
     private val loginIpThrottle: LoginIpThrottle,
     private val signupAttemptService: SignupAttemptService,
+    private val securityEventService: SecurityEventService,
 ) : AuthenticationApi {
     // Endpoints that come from the generated AuthenticationApi (signUp,
     // signIn, logout, changePassword) are mounted by the interface.
@@ -52,6 +54,12 @@ class AuthController(
 
         authService.localSignUp(signUpRequest)
         logger.info("User signed up successfully: ${signUpRequest.email}")
+        securityEventService.record(
+            type = SecurityEventService.EventType.SIGNUP_SUCCESS,
+            identifier = signUpRequest.email,
+            ip = clientIp,
+            message = "New account created",
+        )
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(MessageResponse("Account created successfully"))
     }
@@ -76,6 +84,12 @@ class AuthController(
             val user = authService.localSignIn(signInRequest, request, response)
             logger.info("User signed in successfully: ${signInRequest.identifier}")
             loginIpThrottle.loginSucceeded(clientIp)
+            securityEventService.record(
+                type = SecurityEventService.EventType.LOGIN_SUCCESS,
+                identifier = signInRequest.identifier,
+                ip = clientIp,
+                message = "Successful sign-in",
+            )
             ResponseEntity.ok(MeResponse(user))
         } catch (e: LockedException) {
             val retryAfter = loginAttemptService.retryAfterSeconds(signInRequest.identifier)
@@ -87,6 +101,12 @@ class AuthController(
         } catch (e: BadCredentialsException) {
             logger.warn("Sign in failed - bad credentials: ${signInRequest.identifier}")
             loginIpThrottle.loginFailed(clientIp)
+            securityEventService.record(
+                type = SecurityEventService.EventType.LOGIN_FAILURE,
+                identifier = signInRequest.identifier,
+                ip = clientIp,
+                message = "Bad credentials",
+            )
             throw e
         }
     }

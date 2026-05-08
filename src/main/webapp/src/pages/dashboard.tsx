@@ -1,8 +1,8 @@
 'use client'
 
-import {Calendar, Check, DollarSign, LogOut, MapPin, Plus, Search, Settings, UserPlus, Users, X} from "lucide-react";
+import {Calendar, Check, DollarSign, LogOut, MapPin, Plus, Search, Settings, Shield, UserPlus, Users, X} from "lucide-react";
 import React, {useEffect, useState} from "react";
-import {Expense, Trip, TripStatus, User} from "@/types";
+import {Expense, Trip, TripStatus, User, UserRole} from "@/types";
 import {createTrip, getMyTrips} from "@/services/tripService";
 import {GetServerSideProps} from "next";
 import {createServerApiClient} from "@/services/apiClient";
@@ -112,13 +112,15 @@ export default function Dashboard({
         setError(null);
 
         try {
+            const trimmedName = tripForm.name?.trim();
+            const trimmedDescription = tripForm.description?.trim();
             const newTrips: Trip[] = [{
                 participants: selectedParticipants,
-                name: tripForm.name,
+                ...(trimmedName ? {name: trimmedName} : {}),
                 destination: tripForm.destination,
                 startTime: tripForm.startTime,
-                endTime: tripForm.endTime,
-                description: tripForm.description,
+                ...(tripForm.endTime ? {endTime: tripForm.endTime} : {}),
+                ...(trimmedDescription ? {description: trimmedDescription} : {}),
                 status: TripStatus.Planned,
             }];
 
@@ -206,6 +208,16 @@ export default function Dashboard({
                         </h1>
                     </div>
                     <div className="flex items-center gap-2">
+                        {user.roles?.includes(UserRole.Admin) && (
+                            <Link
+                                href="/admin/security"
+                                className="flex items-center gap-2 px-4 py-2 bg-amber-700 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                                title="Logging & Monitoring"
+                            >
+                                <Shield className="w-4 h-4"/>
+                                <span>Security</span>
+                            </Link>
+                        )}
                         <Link
                             href="/settings"
                             className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
@@ -283,6 +295,15 @@ export default function Dashboard({
                                 ${totalExpensesUpcomingTrip || 0} total
                             </span>
                                         </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <Link
+                                            href={`/trips/${upcomingTrip.id}/balances`}
+                                            className="inline-flex items-center text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                        >
+                                            View balances & settle up →
+                                        </Link>
                                     </div>
                                 </div>
                             </>

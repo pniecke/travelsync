@@ -24,6 +24,7 @@ class LoginAttemptService(
     private val maxAttempts: Int,
     @Value("\${app.security.login.lockout-minutes:15}")
     lockoutMinutes: Long,
+    private val securityEventService: SecurityEventService,
 ) {
     private val logger = LoggerFactory.getLogger(LoginAttemptService::class.java)
 
@@ -61,6 +62,11 @@ class LoginAttemptService(
         }?.let {
             if (it.failures >= maxAttempts) {
                 logger.warn("Account locked after {} failed attempts: {}", it.failures, key)
+                securityEventService.record(
+                    type = SecurityEventService.EventType.ACCOUNT_LOCKED,
+                    identifier = key,
+                    message = "Account locked after ${it.failures} failed attempts",
+                )
             }
         }
     }

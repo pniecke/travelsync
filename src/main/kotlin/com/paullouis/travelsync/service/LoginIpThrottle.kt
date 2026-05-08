@@ -31,6 +31,7 @@ class LoginIpThrottle(
     private val maxFailures: Int,
     @Value("\${app.security.login.ip-window-minutes:15}")
     windowMinutes: Long,
+    private val securityEventService: SecurityEventService,
 ) {
     private val logger = LoggerFactory.getLogger(LoginIpThrottle::class.java)
 
@@ -66,6 +67,11 @@ class LoginIpThrottle(
         }?.let {
             if (it.count == maxFailures) {
                 logger.warn("Login IP throttle reached for {} ({} failures in window)", ip, it.count)
+                securityEventService.record(
+                    type = SecurityEventService.EventType.IP_LOGIN_THROTTLED,
+                    ip = ip,
+                    message = "IP throttle triggered (${it.count} failures in window)",
+                )
             }
         }
     }

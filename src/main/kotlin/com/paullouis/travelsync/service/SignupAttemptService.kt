@@ -25,6 +25,7 @@ class SignupAttemptService(
     private val maxAttempts: Int,
     @Value("\${app.security.signup.window-minutes:15}")
     windowMinutes: Long,
+    private val securityEventService: SecurityEventService,
 ) {
     private val logger = LoggerFactory.getLogger(SignupAttemptService::class.java)
 
@@ -60,6 +61,11 @@ class SignupAttemptService(
         }?.let {
             if (it.count == maxAttempts) {
                 logger.warn("Signup rate limit reached for IP {} ({} attempts in window)", ip, it.count)
+                securityEventService.record(
+                    type = SecurityEventService.EventType.SIGNUP_THROTTLED,
+                    ip = ip,
+                    message = "Signup throttle triggered (${it.count} attempts in window)",
+                )
             }
         }
     }

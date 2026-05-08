@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import com.paullouis.travelsync.model.generated.Currency
+import com.paullouis.travelsync.model.generated.ExpenseShare
 import com.paullouis.travelsync.model.generated.User
 import jakarta.validation.constraints.DecimalMax
 import jakarta.validation.constraints.DecimalMin
@@ -28,6 +29,7 @@ import io.swagger.v3.oas.annotations.media.Schema
  * @param description Description of the expense
  * @param lastModified Last modified date and time of the expense
  * @param paidBy 
+ * @param shares Per-participant breakdown of how this expense is split.
  */
 data class Expense(
 
@@ -64,7 +66,12 @@ data class Expense(
 
     @field:Valid
     @Schema(example = "null", description = "")
-    @get:JsonProperty("paidBy") val paidBy: User? = null
+    @get:JsonProperty("paidBy") val paidBy: User? = null,
+
+    @field:Valid
+    @get:Size(max=100)
+    @Schema(example = "null", description = "Per-participant breakdown of how this expense is split.")
+    @get:JsonProperty("shares") val shares: kotlin.collections.List<ExpenseShare>? = null
     ) {
 
 }

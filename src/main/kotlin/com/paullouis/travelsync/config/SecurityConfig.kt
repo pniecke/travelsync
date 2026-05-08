@@ -84,6 +84,7 @@ class SecurityConfig(
                     .requestMatchers(antMatcher("/api/auth/signup")).permitAll()
                     .requestMatchers(antMatcher("/api/auth/signin")).permitAll()
                     .requestMatchers(antMatcher("/api/auth/csrf")).permitAll()
+                    .requestMatchers(antMatcher("/api/admin/**")).hasRole("ADMIN")
                     .requestMatchers(antMatcher("/api/**")).authenticated()
                     .anyRequest().permitAll()
             }

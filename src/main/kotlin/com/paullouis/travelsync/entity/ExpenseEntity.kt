@@ -34,6 +34,9 @@ data class ExpenseEntity(
     @JoinColumn(name = "paid_by", nullable = true)
     val paidBy: UserEntity? = null,
 
+    @OneToMany(mappedBy = "expense", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val shares: MutableList<ExpenseShareEntity> = mutableListOf(),
+
     @Column(nullable = false)
     val dateOfExpense: LocalDateTime,
 

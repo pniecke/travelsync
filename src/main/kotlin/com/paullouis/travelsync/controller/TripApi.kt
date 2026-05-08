@@ -5,7 +5,11 @@
 */
 package com.paullouis.travelsync.controller
 
+import com.paullouis.travelsync.model.generated.ApiError
+import com.paullouis.travelsync.model.generated.CreateSettlementRequest
+import com.paullouis.travelsync.model.generated.Settlement
 import com.paullouis.travelsync.model.generated.Trip
+import com.paullouis.travelsync.model.generated.TripBalances
 import io.swagger.v3.oas.annotations.*
 import io.swagger.v3.oas.annotations.enums.*
 import io.swagger.v3.oas.annotations.media.*
@@ -39,6 +43,28 @@ interface TripApi {
 
     @Operation(
         tags = ["Trip",],
+        summary = "Record a settlement (cash payment between participants)",
+        operationId = "createSettlement",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "201", description = "Settlement created", content = [Content(schema = Schema(implementation = Settlement::class))]),
+            ApiResponse(responseCode = "400", description = "Invalid settlement", content = [Content(schema = Schema(implementation = ApiError::class))]),
+            ApiResponse(responseCode = "403", description = "Forbidden")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.POST],
+            value = ["/trips/{id}/settlements"],
+            produces = ["application/json"],
+            consumes = ["application/json"]
+    )
+    fun createSettlement(@Parameter(description = "", required = true) @PathVariable("id") id: java.util.UUID,@Parameter(description = "", required = true) @Valid @RequestBody createSettlementRequest: CreateSettlementRequest): ResponseEntity<Settlement> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Trip",],
         summary = "Create a new trip",
         operationId = "createTrip",
         description = """""",
@@ -56,6 +82,66 @@ interface TripApi {
             consumes = ["application/json"]
     )
     fun createTrip(@Parameter(description = "", required = true) @Valid @RequestBody trip: kotlin.collections.List<Trip>): ResponseEntity<List<Trip>> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Trip",],
+        summary = "Delete a recorded settlement",
+        operationId = "deleteSettlement",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Deleted"),
+            ApiResponse(responseCode = "403", description = "Forbidden"),
+            ApiResponse(responseCode = "404", description = "Settlement not found")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.DELETE],
+            value = ["/trips/{id}/settlements/{settlementId}"]
+    )
+    fun deleteSettlement(@Parameter(description = "", required = true) @PathVariable("id") id: java.util.UUID,@Parameter(description = "", required = true) @PathVariable("settlementId") settlementId: java.util.UUID): ResponseEntity<Unit> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Trip",],
+        summary = "Get net balances and suggested settlements for a trip",
+        operationId = "getTripBalances",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Per-currency net balances and suggested settlements", content = [Content(schema = Schema(implementation = TripBalances::class))]),
+            ApiResponse(responseCode = "403", description = "Forbidden"),
+            ApiResponse(responseCode = "404", description = "Trip not found")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.GET],
+            value = ["/trips/{id}/balances"],
+            produces = ["application/json"]
+    )
+    fun getTripBalances(@Parameter(description = "", required = true) @PathVariable("id") id: java.util.UUID): ResponseEntity<TripBalances> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Trip",],
+        summary = "List all settlements for a trip",
+        operationId = "getTripSettlements",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Settlements for this trip", content = [Content(array = ArraySchema(schema = Schema(implementation = Settlement::class)))])
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.GET],
+            value = ["/trips/{id}/settlements"],
+            produces = ["application/json"]
+    )
+    fun getTripSettlements(@Parameter(description = "", required = true) @PathVariable("id") id: java.util.UUID): ResponseEntity<List<Settlement>> {
         return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     }
 

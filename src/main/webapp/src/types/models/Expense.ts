@@ -27,6 +27,13 @@ import {
     CurrencyToJSON,
     CurrencyToJSONTyped,
 } from './Currency';
+import type { ExpenseShare } from './ExpenseShare';
+import {
+    ExpenseShareFromJSON,
+    ExpenseShareFromJSONTyped,
+    ExpenseShareToJSON,
+    ExpenseShareToJSONTyped,
+} from './ExpenseShare';
 
 /**
  * 
@@ -88,6 +95,12 @@ export interface Expense {
      * @memberof Expense
      */
     tripId: string;
+    /**
+     * Per-participant breakdown of how this expense is split.
+     * @type {Array<ExpenseShare>}
+     * @memberof Expense
+     */
+    shares?: Array<ExpenseShare>;
 }
 
 
@@ -123,6 +136,7 @@ export function ExpenseFromJSONTyped(json: any, ignoreDiscriminator: boolean): E
         'createdBy': UserFromJSON(json['createdBy']),
         'paidBy': json['paidBy'] == null ? undefined : UserFromJSON(json['paidBy']),
         'tripId': json['tripId'],
+        'shares': json['shares'] == null ? undefined : ((json['shares'] as Array<any>).map(ExpenseShareFromJSON)),
     };
 }
 
@@ -146,6 +160,7 @@ export function ExpenseToJSONTyped(value?: Expense | null, ignoreDiscriminator: 
         'createdBy': UserToJSON(value['createdBy']),
         'paidBy': UserToJSON(value['paidBy']),
         'tripId': value['tripId'],
+        'shares': value['shares'] == null ? undefined : ((value['shares'] as Array<any>).map(ExpenseShareToJSON)),
     };
 }
 

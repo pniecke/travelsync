@@ -9,8 +9,4 @@ import org.mapstruct.Mapping
 interface TripMapper {
 
     fun toDto(tripEntity: TripEntity): Trip
-
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    fun toEntity(trip: Trip): TripEntity
 }

@@ -138,19 +138,29 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
                     <ChevronLeft className="w-5 h-5 mr-1 group-hover:-translate-x-1 transition-transform"/>
                     <span className="font-medium">Back to Dashboard</span>
                 </Link>
-                <button
-                    onClick={() => {
-                        if (trips.length === 0) {
-                            setError("You need to create a trip first before adding expenses.");
-                            return;
-                        }
-                        setShowExpenseDialog(true);
-                    }}
-                    className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors shadow-md"
-                >
-                    <Plus className="w-4 h-4 mr-2"/>
-                    Create Expense
-                </button>
+                <div className="flex items-center gap-2">
+                    {selectedTripFilter !== 'all' && (
+                        <Link
+                            href={`/trips/${selectedTripFilter}/balances`}
+                            className="flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-lg transition-colors shadow-md"
+                        >
+                            View Balances
+                        </Link>
+                    )}
+                    <button
+                        onClick={() => {
+                            if (trips.length === 0) {
+                                setError("You need to create a trip first before adding expenses.");
+                                return;
+                            }
+                            setShowExpenseDialog(true);
+                        }}
+                        className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors shadow-md"
+                    >
+                        <Plus className="w-4 h-4 mr-2"/>
+                        Create Expense
+                    </button>
+                </div>
             </div>
 
             {/* Page Title */}

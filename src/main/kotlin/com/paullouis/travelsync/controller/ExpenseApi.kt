@@ -5,7 +5,9 @@
 */
 package com.paullouis.travelsync.controller
 
+import com.paullouis.travelsync.model.generated.ApiError
 import com.paullouis.travelsync.model.generated.Expense
+import com.paullouis.travelsync.model.generated.ExpenseShare
 import io.swagger.v3.oas.annotations.*
 import io.swagger.v3.oas.annotations.enums.*
 import io.swagger.v3.oas.annotations.media.*
@@ -61,9 +63,69 @@ interface ExpenseApi {
 
     @Operation(
         tags = ["Expense",],
+        summary = "Delete an expense (cascades shares)",
+        operationId = "deleteExpense",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Expense deleted"),
+            ApiResponse(responseCode = "403", description = "Forbidden"),
+            ApiResponse(responseCode = "404", description = "Expense not found")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.DELETE],
+            value = ["/expenses/{id}"]
+    )
+    fun deleteExpense(@Parameter(description = "", required = true) @PathVariable("id") id: java.util.UUID): ResponseEntity<Unit> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Expense",],
+        summary = "Get a single expense by id",
+        operationId = "getExpense",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "The expense", content = [Content(schema = Schema(implementation = Expense::class))]),
+            ApiResponse(responseCode = "404", description = "Expense not found", content = [Content(schema = Schema(implementation = ApiError::class))])
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.GET],
+            value = ["/expenses/{id}"],
+            produces = ["application/json"]
+    )
+    fun getExpense(@Parameter(description = "", required = true) @PathVariable("id") id: java.util.UUID): ResponseEntity<Expense> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Expense",],
+        summary = "List all shares for an expense",
+        operationId = "getExpenseShares",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Shares for this expense", content = [Content(array = ArraySchema(schema = Schema(implementation = ExpenseShare::class)))]),
+            ApiResponse(responseCode = "404", description = "Expense not found")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.GET],
+            value = ["/expenses/{id}/shares"],
+            produces = ["application/json"]
+    )
+    fun getExpenseShares(@Parameter(description = "", required = true) @PathVariable("id") id: java.util.UUID): ResponseEntity<List<ExpenseShare>> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Expense",],
         summary = "Get expenses with optional filtering",
         operationId = "getExpenses",
-        description = """Returns a list of expenses, optionally filtered by creator or payer""",
+        description = """Returns a list of expenses, optionally filtered by creator, payer or trip""",
         responses = [
             ApiResponse(responseCode = "200", description = "List of expenses", content = [Content(array = ArraySchema(schema = Schema(implementation = Expense::class)))])
         ],
@@ -74,7 +136,30 @@ interface ExpenseApi {
             value = ["/expenses"],
             produces = ["application/json"]
     )
-    fun getExpenses(@Parameter(description = "When true, return only expenses created by the current user") @Valid @RequestParam(value = "createdBy", required = false) createdBy: kotlin.Boolean?,@Parameter(description = "When true, return only expenses paid by the current user") @Valid @RequestParam(value = "paidBy", required = false) paidBy: kotlin.Boolean?): ResponseEntity<List<Expense>> {
+    fun getExpenses(@Parameter(description = "When true, return only expenses created by the current user") @Valid @RequestParam(value = "createdBy", required = false) createdBy: kotlin.Boolean?,@Parameter(description = "When true, return only expenses paid by the current user") @Valid @RequestParam(value = "paidBy", required = false) paidBy: kotlin.Boolean?,@Parameter(description = "Filter expenses to a single trip") @Valid @RequestParam(value = "tripId", required = false) tripId: java.util.UUID?): ResponseEntity<List<Expense>> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Expense",],
+        summary = "Replace all shares for an expense",
+        operationId = "updateExpenseShares",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Updated shares", content = [Content(array = ArraySchema(schema = Schema(implementation = ExpenseShare::class)))]),
+            ApiResponse(responseCode = "400", description = "Invalid shares (sum mismatch, non-participant, etc.)", content = [Content(schema = Schema(implementation = ApiError::class))]),
+            ApiResponse(responseCode = "403", description = "Forbidden"),
+            ApiResponse(responseCode = "404", description = "Expense not found")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.PUT],
+            value = ["/expenses/{id}/shares"],
+            produces = ["application/json"],
+            consumes = ["application/json"]
+    )
+    fun updateExpenseShares(@Parameter(description = "", required = true) @PathVariable("id") id: java.util.UUID,@Parameter(description = "", required = true) @Valid @RequestBody expenseShare: kotlin.collections.List<ExpenseShare>): ResponseEntity<List<ExpenseShare>> {
         return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     }
 }

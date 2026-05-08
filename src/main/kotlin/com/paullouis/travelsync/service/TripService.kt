@@ -3,7 +3,9 @@ package com.paullouis.travelsync.service
 import com.paullouis.travelsync.entity.TripEntity
 import com.paullouis.travelsync.entity.UserEntity
 import com.paullouis.travelsync.model.generated.Trip
+import com.paullouis.travelsync.model.generated.User
 import com.paullouis.travelsync.repository.TripRepository
+import com.paullouis.travelsync.repository.UserRepository
 import com.paullouis.travelsync.service.exception.ForbiddenException
 import com.paullouis.travelsync.service.exception.NotFoundException
 import com.paullouis.travelsync.utils.mapper.TripMapper
@@ -15,6 +17,7 @@ import java.util.*
 @Service
 class TripService(
     private val tripRepository: TripRepository,
+    private val userRepository: UserRepository,
     private val tripMapper: TripMapper,
     private val userMapper: UserMapper,
     private val userService: UserService,
@@ -41,7 +44,17 @@ class TripService(
 
     @Transactional
     override fun createTrips(trips: List<Trip>): List<Trip> {
-        val tripEntities: List<TripEntity> = trips.map { tripMapper.toEntity(it) }
+        val tripEntities: List<TripEntity> = trips.map { trip ->
+            TripEntity(
+                name = trip.name,
+                participants = resolveParticipants(trip.participants).toMutableList(),
+                startTime = trip.startTime,
+                endTime = trip.endTime,
+                destination = trip.destination,
+                description = trip.description,
+                status = trip.status,
+            )
+        }
         val savedTrips = tripRepository.saveAll(tripEntities)
         return savedTrips.map { tripMapper.toDto(it) }
     }
@@ -58,8 +71,7 @@ class TripService(
             throw ForbiddenException("You are not a participant of this trip")
         }
 
-        val participantEntities: List<UserEntity> =
-            trip.participants.map { userMapper.toEntity(it) }
+        val participantEntities = resolveParticipants(trip.participants)
         var updatedTrip = existingTripEntity.copy(
             name = trip.name,
             participants = participantEntities.toMutableList(),
@@ -72,4 +84,18 @@ class TripService(
         updatedTrip = tripRepository.save(updatedTrip)
         return tripMapper.toDto(updatedTrip)
     }
+
+    /**
+     * Resolve participant DTOs to managed UserEntity rows. The DTOs from
+     * /users intentionally omit PII (email, mobile, etc.), so reconstructing
+     * a UserEntity from them via the mapper would fail Kotlin's non-null
+     * checks. Look up each participant by id instead.
+     */
+    private fun resolveParticipants(participants: List<User>): List<UserEntity> =
+        participants.map { dto ->
+            val id = dto.id
+                ?: throw IllegalArgumentException("Participant id is required")
+            userRepository.findById(id)
+                .orElseThrow { NotFoundException("User $id not found") }
+        }
 }
