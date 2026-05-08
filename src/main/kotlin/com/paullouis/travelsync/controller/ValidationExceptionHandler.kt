@@ -2,6 +2,8 @@ package com.paullouis.travelsync.controller
 
 import com.paullouis.travelsync.model.generated.ApiError
 import com.paullouis.travelsync.service.exception.DuplicateUserException
+import com.paullouis.travelsync.service.exception.ForbiddenException
+import com.paullouis.travelsync.service.exception.NotFoundException
 import com.paullouis.travelsync.service.exception.SignInRateLimitedException
 import com.paullouis.travelsync.service.exception.SignUpRateLimitedException
 import jakarta.validation.ConstraintViolationException
@@ -55,6 +57,16 @@ class ValidationExceptionHandler {
     @ExceptionHandler(DuplicateUserException::class)
     fun handleDuplicate(ex: DuplicateUserException): ResponseEntity<ApiError> {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError(error = ex.message ?: "Conflict"))
+    }
+
+    @ExceptionHandler(NotFoundException::class)
+    fun handleNotFound(ex: NotFoundException): ResponseEntity<ApiError> {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiError(error = ex.message ?: "Not found"))
+    }
+
+    @ExceptionHandler(ForbiddenException::class)
+    fun handleForbidden(ex: ForbiddenException): ResponseEntity<ApiError> {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError(error = ex.message ?: "Forbidden"))
     }
 
     @ExceptionHandler(SignUpRateLimitedException::class)

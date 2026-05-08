@@ -4,6 +4,8 @@ import com.paullouis.travelsync.entity.TripEntity
 import com.paullouis.travelsync.entity.UserEntity
 import com.paullouis.travelsync.model.generated.Trip
 import com.paullouis.travelsync.repository.TripRepository
+import com.paullouis.travelsync.service.exception.ForbiddenException
+import com.paullouis.travelsync.service.exception.NotFoundException
 import com.paullouis.travelsync.utils.mapper.TripMapper
 import com.paullouis.travelsync.utils.mapper.UserMapper
 import jakarta.transaction.Transactional
@@ -25,8 +27,9 @@ class TripService(
     }
 
     override fun getById(id: UUID): Trip {
-        val tripEntity: TripEntity = tripRepository.findById(id).orElse(null) // TODO: throw not found exception
-        return tripEntity.let { tripMapper.toDto(it) }
+        val tripEntity: TripEntity = tripRepository.findById(id)
+            .orElseThrow { NotFoundException("Trip $id not found") }
+        return tripMapper.toDto(tripEntity)
     }
 
     override fun getTripsByLoggedInUser(): List<Trip> {
@@ -45,8 +48,16 @@ class TripService(
 
     @Transactional
     override fun updateTrip(id: UUID, trip: Trip): Trip {
-        val existingTripEntity: TripEntity =
-            tripRepository.findById(id).orElse(null) // TODO: throw not found exception (or maybe 409 conflict)
+        val existingTripEntity: TripEntity = tripRepository.findById(id)
+            .orElseThrow { NotFoundException("Trip $id not found") }
+
+        // Only existing participants may modify the trip. Without this any
+        // authenticated user could PUT /trips/{id} as long as they knew the UUID.
+        val currentUserId = userService.getOrCreateUser().id
+        if (existingTripEntity.participants.none { it.id == currentUserId }) {
+            throw ForbiddenException("You are not a participant of this trip")
+        }
+
         val participantEntities: List<UserEntity> =
             trip.participants.map { userMapper.toEntity(it) }
         var updatedTrip = existingTripEntity.copy(
