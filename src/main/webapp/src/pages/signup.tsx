@@ -2,18 +2,21 @@ import {AlertCircle, ChevronLeft, ChevronRight, Eye, EyeOff, Plane} from "lucide
 import React, {useEffect, useState} from "react";
 import {AnimatedBackground} from "@/components/AnimatedBackground";
 import Link from "next/link";
-import {AuthFormData} from "@/types/models/AuthFormData";
 import {useAuth} from "@/context/AuthProvider";
 import {useRouter} from "next/router";
 import apiClient, {ensureCsrf} from "@/services/apiClient";
 import {SignUpRequest} from "@/types/models/SignUpRequest";
 import {AxiosError} from "axios";
 
-interface SignupFormData extends AuthFormData {
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]+$/;
+
+interface SignupFormData {
+    email: string;
+    password: string;
     confirmPassword: string;
-    name: string;
-    bio: string;
-    interests: string[];
+    username: string;
+    firstName: string;
+    lastName: string;
 }
 
 export const Signup: React.FC = () => {
@@ -26,14 +29,14 @@ export const Signup: React.FC = () => {
         }
     }, [user, loading, router]);
 
-    const [currentStep, setCurrentStep] = React.useState(1);
+    const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState<SignupFormData>({
         email: '',
         password: '',
         confirmPassword: '',
-        name: '',
-        bio: '',
-        interests: []
+        username: '',
+        firstName: '',
+        lastName: '',
     })
     const [showPassword, setShowPassword] = useState(false);
     const [passwordStrength, setPasswordStrength] = useState(0);
@@ -58,15 +61,6 @@ export const Signup: React.FC = () => {
         }
     }
 
-    const handleInterestToggle = (interest: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            interests: prev.interests.includes(interest)
-                ? prev.interests.filter((i) => i !== interest)
-                : [...prev.interests, interest],
-        }))
-    }
-
     const nextStep = (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMsg(null);
@@ -86,7 +80,7 @@ export const Signup: React.FC = () => {
             }
         }
 
-        setCurrentStep((prev) => Math.min(prev + 1, 3));
+        setCurrentStep((prev) => Math.min(prev + 1, 2));
     }
 
     const prevStep = (e: React.FormEvent) => {
@@ -104,11 +98,21 @@ export const Signup: React.FC = () => {
             setCurrentStep(1);
             return;
         }
+        if (!USERNAME_PATTERN.test(formData.username)) {
+            setErrorMsg("Username may only contain letters, numbers, dots, dashes, and underscores.");
+            return;
+        }
+        if (formData.username.length < 3 || formData.username.length > 64) {
+            setErrorMsg("Username must be between 3 and 64 characters.");
+            return;
+        }
 
         const signUpRequest: SignUpRequest = {
-            username: formData.name,
+            username: formData.username.trim(),
             password: formData.confirmPassword,
             email: formData.email,
+            firstName: formData.firstName.trim() || undefined,
+            lastName: formData.lastName.trim() || undefined,
         }
 
         try {
@@ -138,21 +142,6 @@ export const Signup: React.FC = () => {
             }
         }
     }
-
-    const interests = [
-        "Adventure",
-        "Culture",
-        "Food",
-        "Nature",
-        "Photography",
-        "History",
-        "Beach",
-        "Mountains",
-        "Cities",
-        "Nightlife",
-        "Shopping",
-        "Art",
-    ]
 
     const getPasswordStrengthColor = () => {
         if (passwordStrength < 25) return "bg-red-500"
@@ -252,63 +241,64 @@ export const Signup: React.FC = () => {
                 return (
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">
-                                Full Name
+                            <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1">
+                                Username
                             </label>
                             <input
                                 type="text"
-                                id="name"
-                                name="name"
-                                value={formData.name}
+                                id="username"
+                                name="username"
+                                value={formData.username}
                                 onChange={handleInputChange}
+                                pattern="[A-Za-z0-9._\-]+"
+                                minLength={3}
+                                maxLength={64}
+                                autoComplete="username"
                                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800"
+                                placeholder="e.g. paul.niecke"
                                 required
                             />
-                        </div>
-
-                        <div>
-                            <label htmlFor="bio" className="block text-sm font-medium text-slate-700 mb-1">
-                                Bio (Optional)
-                            </label>
-                            <textarea
-                                id="bio"
-                                name="bio"
-                                value={formData.bio}
-                                onChange={handleInputChange}
-                                rows={3}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none text-slate-800"
-                                placeholder="Tell us a bit about yourself..."
-                            />
-                        </div>
-                    </div>
-                )
-
-            case 3:
-                return (
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="text-lg font-medium text-slate-800 mb-3">What interests you?</h3>
-                            <p className="text-sm text-slate-600 mb-4">
-                                Select your travel interests to get personalized recommendations
+                            <p className="mt-1 text-xs text-slate-500">
+                                3–64 characters. Letters, numbers, and <code>. - _</code> only — no spaces.
                             </p>
+                        </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                                {interests.map((interest) => (
-                                    <button
-                                        key={interest}
-                                        type="button"
-                                        onClick={() => handleInterestToggle(interest)}
-                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                            formData.interests.includes(interest)
-                                                ? "bg-sky-500 text-white"
-                                                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                                        }`}
-                                    >
-                                        {interest}
-                                    </button>
-                                ))}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 mb-1">
+                                    First name
+                                </label>
+                                <input
+                                    type="text"
+                                    id="firstName"
+                                    name="firstName"
+                                    value={formData.firstName}
+                                    onChange={handleInputChange}
+                                    maxLength={100}
+                                    autoComplete="given-name"
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800"
+                                    placeholder="Paul"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 mb-1">
+                                    Last name
+                                </label>
+                                <input
+                                    type="text"
+                                    id="lastName"
+                                    name="lastName"
+                                    value={formData.lastName}
+                                    onChange={handleInputChange}
+                                    maxLength={100}
+                                    autoComplete="family-name"
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800"
+                                    placeholder="Niecke"
+                                />
                             </div>
                         </div>
+                        <p className="text-xs text-slate-500">First and last name are optional — you can add them later in settings.</p>
                     </div>
                 )
 
@@ -335,7 +325,7 @@ export const Signup: React.FC = () => {
 
                     {/* Progress Indicator */}
                     <div className="flex items-center justify-center mb-6">
-                        {[1, 2, 3].map((step) => (
+                        {[1, 2].map((step) => (
                             <React.Fragment key={step}>
                                 <div
                                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -344,7 +334,7 @@ export const Signup: React.FC = () => {
                                 >
                                     {step}
                                 </div>
-                                {step < 3 && <div
+                                {step < 2 && <div
                                     className={`w-12 h-1 mx-2 ${step < currentStep ? "bg-sky-500" : "bg-slate-200"}`}/>}
                             </React.Fragment>
                         ))}
@@ -363,7 +353,7 @@ export const Signup: React.FC = () => {
                     )}
 
                     {/* Step Content */}
-                    <form onSubmit={currentStep === 3 ? handleSubmit : nextStep} className="space-y-6">
+                    <form onSubmit={currentStep === 2 ? handleSubmit : nextStep} className="space-y-6">
                         {renderStep()}
 
                         {/* Navigation Buttons */}
@@ -381,7 +371,7 @@ export const Signup: React.FC = () => {
                                 <div/>
                             )}
 
-                            {currentStep < 3 ? (
+                            {currentStep < 2 ? (
                                 <button
                                     type="submit"
                                     className="flex items-center px-6 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"

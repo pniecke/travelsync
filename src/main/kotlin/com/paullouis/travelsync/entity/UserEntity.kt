@@ -15,7 +15,7 @@ data class UserEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     val id: UUID? = null,
-    val password: String? = null,
+    var password: String? = null,
     @Column(unique = true, nullable = false)
     val username: String,
     val firstName: String,

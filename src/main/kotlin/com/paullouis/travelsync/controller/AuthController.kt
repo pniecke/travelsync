@@ -1,147 +1,116 @@
 package com.paullouis.travelsync.controller
 
+import com.paullouis.travelsync.model.generated.ChangePasswordRequest
 import com.paullouis.travelsync.model.generated.MeResponse
+import com.paullouis.travelsync.model.generated.MessageResponse
 import com.paullouis.travelsync.model.generated.SignInRequest
 import com.paullouis.travelsync.model.generated.SignUpRequest
-import com.paullouis.travelsync.service.DatabaseAuthService
-import com.paullouis.travelsync.service.DuplicateEmailException
-import com.paullouis.travelsync.service.DuplicateUserException
+import com.paullouis.travelsync.service.IDatabaseAuthService
 import com.paullouis.travelsync.service.LoginAttemptService
 import com.paullouis.travelsync.service.LoginIpThrottle
 import com.paullouis.travelsync.service.SignupAttemptService
+import com.paullouis.travelsync.service.exception.SignInRateLimitedException
+import com.paullouis.travelsync.service.exception.SignUpRateLimitedException
 import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
-import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.LockedException
 import org.springframework.security.web.csrf.CsrfToken
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.web.context.request.ServletRequestAttributes
 
 @RestController
-@RequestMapping("\${api.base-path:/api}/auth")
 class AuthController(
-    private val authService: DatabaseAuthService,
+    private val authService: IDatabaseAuthService,
     private val loginAttemptService: LoginAttemptService,
     private val loginIpThrottle: LoginIpThrottle,
     private val signupAttemptService: SignupAttemptService,
-) {
+) : AuthenticationApi {
+    // Endpoints that come from the generated AuthenticationApi (signUp,
+    // signIn, logout, changePassword) are mounted by the interface.
+    // /auth/csrf and /auth/status are framework plumbing, not part of the
+    // public API surface, so they stay as plain controller methods.
 
     private val logger = LoggerFactory.getLogger(AuthController::class.java)
 
-    @PostMapping("/signup")
-    fun signUp(
-        @RequestBody signUpRequest: SignUpRequest,
-        request: HttpServletRequest,
-    ): ResponseEntity<Map<String, Any>> {
-        val clientIp = request.remoteAddr ?: "unknown"
+    override fun signUp(signUpRequest: SignUpRequest): ResponseEntity<MessageResponse> {
+        val clientIp = currentRequest().remoteAddr ?: "unknown"
 
         if (signupAttemptService.isBlocked(clientIp)) {
             val retryAfter = signupAttemptService.retryAfterSeconds(clientIp)
             logger.warn("Sign up blocked - rate limit for IP {} (retry in ${retryAfter}s)", clientIp)
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .header(HttpHeaders.RETRY_AFTER, retryAfter.toString())
-                .body(mapOf(
-                    "error" to "Too many signup attempts from this network. Please try again later.",
-                    "retryAfterSeconds" to retryAfter,
-                ))
+            throw SignUpRateLimitedException(
+                retryAfterSeconds = retryAfter,
+                message = "Too many signup attempts from this network. Please try again later.",
+            )
         }
-
         signupAttemptService.recordAttempt(clientIp)
 
-        return try {
-            authService.localSignUp(signUpRequest)
-            logger.info("User signed up successfully: ${signUpRequest.email}")
-            ResponseEntity.status(HttpStatus.CREATED)
-                .body(mapOf("message" to "Account created successfully"))
-        } catch (e: DuplicateEmailException) {
-            logger.warn("Sign up failed - duplicate email: ${signUpRequest.email}")
-            ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(mapOf("error" to e.message.orEmpty()))
-        } catch (e: DuplicateUserException) {
-            logger.warn("Sign up failed - duplicate user: ${signUpRequest.email}")
-            ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(mapOf("error" to e.message.orEmpty()))
-        } catch (e: IllegalArgumentException) {
-            logger.warn("Sign up failed - validation error: ${e.message}")
-            ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(mapOf("error" to e.message.orEmpty()))
-        } catch (e: Exception) {
-            logger.error("Sign up failed unexpectedly", e)
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(mapOf("error" to "Registration failed. Please try again."))
-        }
+        authService.localSignUp(signUpRequest)
+        logger.info("User signed up successfully: ${signUpRequest.email}")
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(MessageResponse("Account created successfully"))
     }
 
-    @PostMapping("/signin")
-    fun signIn(
-        @RequestBody signInRequest: SignInRequest,
-        request: HttpServletRequest,
-        response: HttpServletResponse
-    ): ResponseEntity<Map<String, Any>> {
+    override fun signIn(signInRequest: SignInRequest): ResponseEntity<MeResponse> {
+        val attrs = currentAttrs()
+        val request = attrs.request
+        val response = attrs.response
+            ?: throw IllegalStateException("Servlet response not available in current request scope")
         val clientIp = request.remoteAddr ?: "unknown"
 
         if (loginIpThrottle.isBlocked(clientIp)) {
             val retryAfter = loginIpThrottle.retryAfterSeconds(clientIp)
             logger.warn("Sign in blocked - IP throttle for {} (retry in ${retryAfter}s)", clientIp)
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .header(HttpHeaders.RETRY_AFTER, retryAfter.toString())
-                .body(mapOf(
-                    "error" to "Too many failed sign-in attempts from this network. Try again later.",
-                    "retryAfterSeconds" to retryAfter,
-                ))
+            throw SignInRateLimitedException(
+                retryAfterSeconds = retryAfter,
+                message = "Too many failed sign-in attempts from this network. Try again later.",
+            )
         }
 
         return try {
             val user = authService.localSignIn(signInRequest, request, response)
             logger.info("User signed in successfully: ${signInRequest.identifier}")
             loginIpThrottle.loginSucceeded(clientIp)
-            ResponseEntity.ok(mapOf(
-                "message" to "Login successful",
-                "user" to MeResponse(user)
-            ))
+            ResponseEntity.ok(MeResponse(user))
         } catch (e: LockedException) {
             val retryAfter = loginAttemptService.retryAfterSeconds(signInRequest.identifier)
             logger.warn("Sign in blocked - account locked: ${signInRequest.identifier} (retry in ${retryAfter}s)")
-            ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .header(HttpHeaders.RETRY_AFTER, retryAfter.toString())
-                .body(mapOf(
-                    "error" to (e.message ?: "Too many failed attempts. Try again later."),
-                    "retryAfterSeconds" to retryAfter,
-                ))
+            throw SignInRateLimitedException(
+                retryAfterSeconds = retryAfter,
+                message = e.message ?: "Too many failed attempts. Try again later.",
+            )
         } catch (e: BadCredentialsException) {
             logger.warn("Sign in failed - bad credentials: ${signInRequest.identifier}")
             loginIpThrottle.loginFailed(clientIp)
-            ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(mapOf("error" to (e.message ?: "Invalid credentials")))
-        } catch (e: IllegalStateException) {
-            logger.warn("Sign in failed - account configuration issue: ${signInRequest.identifier}")
-            ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(mapOf("error" to e.message.orEmpty()))
-        } catch (e: Exception) {
-            logger.error("Sign in failed unexpectedly", e)
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(mapOf("error" to "Login failed. Please try again."))
+            throw e
         }
     }
 
-    @PostMapping("/logout")
-    fun logout(request: HttpServletRequest): ResponseEntity<Unit> {
-        authService.logout(request)
-        logger.info("User logged out successfully")
+    override fun logout(): ResponseEntity<Unit> {
+        authService.logout(currentRequest())
+        logger.info("User logged out")
         return ResponseEntity.noContent().build()
     }
 
-    @GetMapping("/csrf")
+    override fun changePassword(changePasswordRequest: ChangePasswordRequest): ResponseEntity<Unit> {
+        authService.changePassword(changePasswordRequest)
+        logger.info("Password changed for current user")
+        return ResponseEntity.ok().build()
+    }
+
+    @GetMapping("/auth/csrf")
     fun csrf(request: HttpServletRequest): ResponseEntity<Map<String, String>> {
         val token = request.getAttribute(CsrfToken::class.java.name) as? CsrfToken
         return if (token != null) {
             ResponseEntity.ok(
                 mapOf(
                     "token" to token.token,
-                    "headerName" to token.headerName
+                    "headerName" to token.headerName,
                 )
             )
         } else {
@@ -151,10 +120,14 @@ class AuthController(
         }
     }
 
-    @GetMapping("/status")
+    @GetMapping("/auth/status")
     fun status(request: HttpServletRequest): ResponseEntity<Map<String, Boolean>> {
-        val isAuthenticated = request.userPrincipal != null
-        return ResponseEntity.ok(mapOf("authenticated" to isAuthenticated))
+        return ResponseEntity.ok(mapOf("authenticated" to (request.userPrincipal != null)))
     }
-}
 
+    private fun currentAttrs(): ServletRequestAttributes =
+        RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes
+            ?: throw IllegalStateException("No servlet request bound to current thread")
+
+    private fun currentRequest(): HttpServletRequest = currentAttrs().request
+}

@@ -37,6 +37,18 @@ export interface SignUpRequest {
      * @memberof SignUpRequest
      */
     email: string;
+    /**
+     * First name of the user
+     * @type {string}
+     * @memberof SignUpRequest
+     */
+    firstName?: string;
+    /**
+     * Last name of the user
+     * @type {string}
+     * @memberof SignUpRequest
+     */
+    lastName?: string;
 }
 
 /**
@@ -62,6 +74,8 @@ export function SignUpRequestFromJSONTyped(json: any, ignoreDiscriminator: boole
         'username': json['username'],
         'password': json['password'],
         'email': json['email'],
+        'firstName': json['firstName'] == null ? undefined : json['firstName'],
+        'lastName': json['lastName'] == null ? undefined : json['lastName'],
     };
 }
 
@@ -79,6 +93,8 @@ export function SignUpRequestToJSONTyped(value?: SignUpRequest | null, ignoreDis
         'username': value['username'],
         'password': value['password'],
         'email': value['email'],
+        'firstName': value['firstName'],
+        'lastName': value['lastName'],
     };
 }
 

@@ -1,0 +1,13 @@
+package com.paullouis.travelsync.service.exception
+
+/**
+ * Thrown when sign-in is blocked by either the per-identifier account lockout
+ * or the per-IP failure throttle. Carries the retry-after window so
+ * [com.paullouis.travelsync.controller.ValidationExceptionHandler] can build
+ * a 429 response with both the `Retry-After` header and the
+ * `retryAfterSeconds` field in the body.
+ */
+class SignInRateLimitedException(
+    val retryAfterSeconds: Long,
+    message: String,
+) : RuntimeException(message)

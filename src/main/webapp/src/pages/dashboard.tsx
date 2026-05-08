@@ -1,6 +1,6 @@
 'use client'
 
-import {Calendar, Check, DollarSign, LogOut, MapPin, Plus, Search, UserPlus, Users, X} from "lucide-react";
+import {Calendar, Check, DollarSign, LogOut, MapPin, Plus, Search, Settings, UserPlus, Users, X} from "lucide-react";
 import React, {useEffect, useState} from "react";
 import {Expense, Trip, TripStatus, User} from "@/types";
 import {createTrip, getMyTrips} from "@/services/tripService";
@@ -205,14 +205,24 @@ export default function Dashboard({
                             Welcome back, <span className="text-blue-400">{user!.firstName || user!.username}</span>
                         </h1>
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
-                        title="Sign out"
-                    >
-                        <LogOut className="w-4 h-4"/>
-                        <span>Logout</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href="/settings"
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+                            title="Settings"
+                        >
+                            <Settings className="w-4 h-4"/>
+                            <span>Settings</span>
+                        </Link>
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+                            title="Sign out"
+                        >
+                            <LogOut className="w-4 h-4"/>
+                            <span>Logout</span>
+                        </button>
+                    </div>
                 </div>
                 <p className="text-lg font-medium text-gray-300 pl-9">
                     Here&apos;s what&apos;s happening with your trips

@@ -12,7 +12,15 @@ servers:
   - url: http://localhost:8080/api
     description: Local development server
 
+tags:
+  - name: Health
+  - name: Authentication
+  - name: Trip
+  - name: Expense
+  - name: User
+
 paths:
+  # --- Health ----------------------------------------------------------------
   /health:
     get:
       tags: [ Health ]
@@ -27,6 +35,127 @@ paths:
                 type: string
                 example: "UP"
 
+  # --- Authentication --------------------------------------------------------
+  /auth/signup:
+    post:
+      tags: [ Authentication ]
+      operationId: signUp
+      summary: Register a new local-database account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Bad Request - invalid signup data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Conflict - username or email already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '429':
+          description: Too Many Requests - signup rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                format: int64
+              description: Seconds until the next signup attempt is allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /auth/signin:
+    post:
+      tags: [ Authentication ]
+      operationId: signIn
+      summary: Authenticate a local-database account and create a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+      responses:
+        '200':
+          description: Authenticated; session cookie issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        '401':
+          description: Unauthorized - bad credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '429':
+          description: Too Many Requests - account locked or IP throttled
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                format: int64
+              description: Seconds until the next sign-in attempt is allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /auth/logout:
+    post:
+      tags: [ Authentication ]
+      operationId: logout
+      summary: End the current session
+      description: Idempotent — succeeds whether or not a session exists.
+      responses:
+        '204':
+          description: Session ended (or no session was active)
+
+  /auth/change-password:
+    post:
+      tags: [ Authentication ]
+      operationId: changePassword
+      summary: Change the password of the currently logged-in user
+      security:
+        - OidcAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed successfully
+        '400':
+          description: Bad Request - new password fails policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Unauthorized - current password incorrect or no session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  # --- Trip ------------------------------------------------------------------
   /trips:
     post:
       tags: [ Trip ]
@@ -109,6 +238,7 @@ paths:
         '401':
           description: Unauthorized - Authentication required
 
+  # --- Expense ---------------------------------------------------------------
   /expenses:
     get:
       tags: [ Expense ]
@@ -167,6 +297,7 @@ paths:
         '401':
           description: Unauthorized - Authentication required
 
+  # --- User ------------------------------------------------------------------
   /user/me:
     get:
       tags: [ User ]
@@ -183,6 +314,36 @@ paths:
                 $ref: '#/components/schemas/User'
         '401':
           description: Unauthorized - Authentication required
+
+    patch:
+      tags: [ User ]
+      operationId: updateLoggedInUser
+      summary: Update the currently logged-in user
+      description: |
+        Updates profile fields of the authenticated user. Only fields present in
+        the request body are modified. The user is identified by the session — `id`,
+        `roles`, and `password` cannot be set through this endpoint.
+      security:
+        - OidcAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Successfully updated the logged-in user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request - Invalid user data
+        '401':
+          description: Unauthorized - Authentication required
+        '409':
+          description: Conflict - username or email already in use
 
   /users:
     get:
@@ -209,10 +370,11 @@ components:
       type: openIdConnect
       openIdConnectUrl: https://accounts.google.com/.well-known/openid-configuration
       description: >
-        OAuth 2.0 / OpenID Connect authentication via Google. 
+        OAuth 2.0 / OpenID Connect authentication via Google.
         The ID Token (JWT) issued by Google should be sent as a Bearer token in the Authorization header of requests.
 
   schemas:
+    # --- Domain ------------------------------------------------------------
     Trip:
       type: object
       required:
@@ -265,6 +427,54 @@ components:
           maxItems: 1000
           items:
             $ref: '#/components/schemas/Expense'
+
+    Expense:
+      type: object
+      required:
+        - amount
+        - currency
+        - tripId
+        - createdBy
+        - dateOfExpense
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the expense
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        description:
+          type: string
+          maxLength: 500
+          description: Description of the expense
+          example: "Hotel accommodation"
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000000000
+          description: Amount of the expense
+          example: 150.75
+        currency:
+          $ref: '#/components/schemas/Currency'
+        dateOfExpense:
+          type: string
+          format: local-date-time
+          description: Date of the expense
+          example: "2025-07-10T15:30:00"
+        lastModified:
+          type: string
+          format: local-date-time
+          description: Last modified date and time of the expense
+          example: "2025-07-10T15:30:00"
+        createdBy:
+          $ref: '#/components/schemas/User'
+        paidBy:
+          $ref: '#/components/schemas/User'
+        tripId:
+          type: string
+          format: uuid
+          description: Unique identifier of the trip associated with the expense
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
 
     User:
       type: object
@@ -323,54 +533,7 @@ components:
           writeOnly: true
           example: "securepassword"
 
-    Expense:
-      type: object
-      required:
-        - amount
-        - currency
-        - tripId
-        - createdBy
-        - dateOfExpense
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Unique identifier for the expense
-          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-        description:
-          type: string
-          maxLength: 500
-          description: Description of the expense
-          example: "Hotel accommodation"
-        amount:
-          type: number
-          format: double
-          minimum: 0
-          maximum: 1000000000
-          description: Amount of the expense
-          example: 150.75
-        currency:
-          $ref: '#/components/schemas/Currency'
-        dateOfExpense:
-          type: string
-          format: local-date-time
-          description: Date of the expense
-          example: "2025-07-10T15:30:00"
-        lastModified:
-          type: string
-          format: local-date-time
-          description: Last modified date and time of the expense
-          example: "2025-07-10T15:30:00"
-        createdBy:
-          $ref: '#/components/schemas/User'
-        paidBy:
-          $ref: '#/components/schemas/User'
-        tripId:
-          type: string
-          format: uuid
-          description: Unique identifier of the trip associated with the expense
-          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-
+    # --- Enums -------------------------------------------------------------
     Currency:
       type: string
       enum: [ CHF, EUR, USD, GBP ]
@@ -389,6 +552,7 @@ components:
       description: Role of the user
       example: "USER"
 
+    # --- Auth requests / responses ----------------------------------------
     SignUpRequest:
       type: object
       required:
@@ -415,6 +579,16 @@ components:
           maxLength: 254
           description: Email address for the new account
           example: "user@example.com"
+        firstName:
+          type: string
+          maxLength: 100
+          description: First name of the user
+          example: "John"
+        lastName:
+          type: string
+          maxLength: 100
+          description: Last name of the user
+          example: "Doe"
 
     SignInRequest:
       type: object
@@ -435,8 +609,91 @@ components:
           description: Password for authentication
           example: "securepassword123"
 
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          minLength: 1
+          maxLength: 72
+          description: The current password of the user
+        newPassword:
+          type: string
+          minLength: 12
+          maxLength: 72
+          description: The new password for the user
+
     MeResponse:
       type: object
       properties:
         user:
           $ref: '#/components/schemas/User'
+
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Human-readable status message
+          example: "Account created successfully"
+
+    ApiError:
+      type: object
+      description: Generic error envelope returned by failing endpoints.
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message safe to display to the user
+          example: "An account with that email already exists. Please sign in instead."
+        retryAfterSeconds:
+          type: integer
+          format: int64
+          description: |
+            For 429 responses: seconds the client should wait before retrying.
+            Mirrors the value of the `Retry-After` header.
+          example: 600
+
+    # --- User update ------------------------------------------------------
+    UpdateUserRequest:
+      type: object
+      description: |
+        Partial profile update. All fields optional; only fields present in the
+        request are applied. `id`, `roles`, and `password` are intentionally
+        excluded — `id` is taken from the session, `roles` is admin-only, and
+        password changes go through `/auth/change-password`.
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 64
+          pattern: '^[A-Za-z0-9._-]+$'
+          example: "john_doe"
+        firstName:
+          type: string
+          maxLength: 100
+          example: "John"
+        lastName:
+          type: string
+          maxLength: 100
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: "john.doe@sample.ch"
+        mobile:
+          type: string
+          maxLength: 32
+          pattern: '^[+0-9 ()-]+$'
+          example: "+41 79 123 45 67"
+        locale:
+          type: string
+          maxLength: 16
+          example: "en-US"

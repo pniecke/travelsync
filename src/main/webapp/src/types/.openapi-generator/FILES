@@ -1,11 +1,15 @@
 index.ts
+models/ApiError.ts
+models/ChangePasswordRequest.ts
 models/Currency.ts
 models/Expense.ts
 models/MeResponse.ts
+models/MessageResponse.ts
 models/SignInRequest.ts
 models/SignUpRequest.ts
 models/Trip.ts
 models/TripStatus.ts
+models/UpdateUserRequest.ts
 models/User.ts
 models/UserRole.ts
 models/index.ts

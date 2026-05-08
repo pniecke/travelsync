@@ -18,6 +18,8 @@ import io.swagger.v3.oas.annotations.media.Schema
  * @param username Username for the new account
  * @param password Password for the new account
  * @param email Email address for the new account
+ * @param firstName First name of the user
+ * @param lastName Last name of the user
  */
 data class SignUpRequest(
 
@@ -33,7 +35,15 @@ data class SignUpRequest(
     @get:Email
     @get:Size(max=254)
     @Schema(example = "user@example.com", required = true, description = "Email address for the new account")
-    @get:JsonProperty("email", required = true) val email: kotlin.String
+    @get:JsonProperty("email", required = true) val email: kotlin.String,
+
+    @get:Size(max=100)
+    @Schema(example = "John", description = "First name of the user")
+    @get:JsonProperty("firstName") val firstName: kotlin.String? = null,
+
+    @get:Size(max=100)
+    @Schema(example = "Doe", description = "Last name of the user")
+    @get:JsonProperty("lastName") val lastName: kotlin.String? = null
     ) {
 
 }

@@ -5,6 +5,7 @@
 */
 package com.paullouis.travelsync.controller
 
+import com.paullouis.travelsync.model.generated.UpdateUserRequest
 import com.paullouis.travelsync.model.generated.User
 import io.swagger.v3.oas.annotations.*
 import io.swagger.v3.oas.annotations.enums.*
@@ -74,6 +75,32 @@ interface UserApi {
             produces = ["application/json"]
     )
     fun getLoggedInUser(): ResponseEntity<User> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["User",],
+        summary = "Update the currently logged-in user",
+        operationId = "updateLoggedInUser",
+        description = """Updates profile fields of the authenticated user. Only fields present in
+the request body are modified. The user is identified by the session — `id`,
+`roles`, and `password` cannot be set through this endpoint.
+""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Successfully updated the logged-in user", content = [Content(schema = Schema(implementation = User::class))]),
+            ApiResponse(responseCode = "400", description = "Bad Request - Invalid user data"),
+            ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+            ApiResponse(responseCode = "409", description = "Conflict - username or email already in use")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.PATCH],
+            value = ["/user/me"],
+            produces = ["application/json"],
+            consumes = ["application/json"]
+    )
+    fun updateLoggedInUser(@Parameter(description = "", required = true) @Valid @RequestBody updateUserRequest: UpdateUserRequest): ResponseEntity<User> {
         return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     }
 }

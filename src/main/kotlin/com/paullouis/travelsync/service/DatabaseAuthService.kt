@@ -2,11 +2,14 @@ package com.paullouis.travelsync.service
 
 import com.paullouis.travelsync.entity.UserEntity
 import com.paullouis.travelsync.model.AuthProvider
+import com.paullouis.travelsync.model.generated.ChangePasswordRequest
 import com.paullouis.travelsync.model.generated.SignInRequest
 import com.paullouis.travelsync.model.generated.SignUpRequest
 import com.paullouis.travelsync.model.generated.User
 import com.paullouis.travelsync.model.generated.UserRole
 import com.paullouis.travelsync.repository.UserRepository
+import com.paullouis.travelsync.service.exception.DuplicateEmailException
+import com.paullouis.travelsync.service.exception.DuplicateUserException
 import com.paullouis.travelsync.utils.mapper.UserMapper
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -31,12 +34,13 @@ class DatabaseAuthService(
     private val passwordEncoder: PasswordEncoder,
     private val authenticationManager: AuthenticationManager,
     private val loginAttemptService: LoginAttemptService,
-) {
+    private val userService: IUserService
+) : IDatabaseAuthService {
 
     private val securityContextRepository: SecurityContextRepository = HttpSessionSecurityContextRepository()
 
     @Transactional
-    fun localSignUp(signUpRequest: SignUpRequest): User {
+    override fun localSignUp(signUpRequest: SignUpRequest): User {
         val username = signUpRequest.username.trim()
         val email = signUpRequest.email.trim().lowercase()
         val rawPassword = signUpRequest.password
@@ -61,8 +65,8 @@ class DatabaseAuthService(
         val user = UserEntity(
             username = username,
             password = passwordEncoder.encode(rawPassword),
-            firstName = "",
-            lastName = "",
+            firstName = signUpRequest.firstName?.trim().orEmpty(),
+            lastName = signUpRequest.lastName?.trim().orEmpty(),
             email = email,
             mobile = "",
             locale = Locale.ENGLISH,
@@ -83,7 +87,7 @@ class DatabaseAuthService(
      * Performs Spring Security authentication and creates a session.
      * Returns the authenticated user.
      */
-    fun localSignIn(
+    override fun localSignIn(
         signInRequest: SignInRequest,
         servletRequest: HttpServletRequest,
         servletResponse: HttpServletResponse
@@ -127,27 +131,41 @@ class DatabaseAuthService(
         return userMapper.toDto(userEntity)
     }
 
-    fun logout(servletRequest: HttpServletRequest) {
+    override fun logout(servletRequest: HttpServletRequest) {
         try {
             servletRequest.logout()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Fallback: clear context and invalidate session
             SecurityContextHolder.clearContext()
             servletRequest.session?.invalidate()
         }
     }
+
+    @Transactional
+    override fun changePassword(changePasswordRequest: ChangePasswordRequest) {
+        val user = userService.getOrCreateUser()
+        if (user.id == null) {
+            throw IllegalStateException("Current user not found in repository")
+        }
+        val userEntity = userRepository.findById(user.id)
+            .orElseThrow { IllegalStateException("Current user not found in repository") }
+        if (userEntity.authProvider != AuthProvider.DATABASE) {
+            // Don't reveal that this is an OAuth-only account; pretend the password
+            // was simply wrong. Keeps account-type information out of the response.
+            throw BadCredentialsException("Current password is incorrect")
+        }
+        if (!passwordEncoder.matches(changePasswordRequest.currentPassword, userEntity.password ?: "")) {
+            throw BadCredentialsException("Current password is incorrect")
+        }
+        if (changePasswordRequest.currentPassword == changePasswordRequest.newPassword) {
+            throw IllegalArgumentException("New password must differ from current password")
+        }
+        validatePassword(changePasswordRequest.newPassword)
+
+        userEntity.password = passwordEncoder.encode(changePasswordRequest.newPassword)
+        userRepository.save(userEntity)
+    }
 }
-
-/**
- * Exception thrown when attempting to create a user that already exists
- */
-open class DuplicateUserException(message: String) : RuntimeException(message)
-
-/**
- * Subtype for email collisions. Allows the controller to log the leak-sensitive
- * case without changing the user-facing message.
- */
-class DuplicateEmailException(message: String) : DuplicateUserException(message)
 
 private val EMAIL_PATTERN = Regex("^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$")
 
@@ -157,11 +175,42 @@ const val MIN_PASSWORD_LENGTH = 12
 // with identical first 72 bytes can't authenticate against the same hash.
 const val MAX_PASSWORD_BYTES = 72
 
+// All entries must be at least MIN_PASSWORD_LENGTH characters or the
+// length check above rejects them first and this set is never consulted.
+// Source: top entries from leaked-password lists (HaveIBeenPwned, RockYou,
+// SecLists), filtered to >= 12 characters and lower-cased.
 private val COMMON_PASSWORDS = setOf(
-    "password", "password1", "password12", "password123", "passw0rd123",
-    "12345678", "123456789", "1234567890", "qwertyuiop", "qwerty1234",
-    "letmein123", "welcome1234", "admin1234", "iloveyou123", "monkey1234",
-    "football12", "baseball12", "trustno1234", "abc12345678", "p@ssw0rd123",
+    "password1234",
+    "password12345",
+    "password123456",
+    "passw0rd1234",
+    "p@ssw0rd1234",
+    "p@ssword1234",
+    "qwerty123456",
+    "qwertyuiop12",
+    "qwerty1234567",
+    "1234567890ab",
+    "123456789012",
+    "1234567891011",
+    "iloveyou1234",
+    "letmein12345",
+    "welcome12345",
+    "welcome123456",
+    "admin1234567",
+    "administrator",
+    "trustno1234567",
+    "abcdef123456",
+    "monkey1234567",
+    "football12345",
+    "baseball12345",
+    "michael12345",
+    "asdfghjkl123",
+    "zxcvbnm12345",
+    "1qaz2wsx3edc",
+    "1q2w3e4r5t6y",
+    "passwordpassword",
+    "iloveyouiloveyou",
+    "changeme1234",
 )
 
 internal fun validatePassword(rawPassword: String) {
