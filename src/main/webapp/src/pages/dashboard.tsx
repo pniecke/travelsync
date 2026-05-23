@@ -12,6 +12,47 @@ import ExpenseDialog from "@/components/ExpenseDialog";
 import {formatDate} from "@/utils/date";
 import {useAuth} from "@/context/AuthProvider";
 
+function TripRow({
+                     trip,
+                     badge,
+                     totals,
+                 }: {
+    trip: Trip;
+    badge: { label: string; classes: string };
+    totals: Array<[string, number]>;
+}) {
+    return (
+        <Link
+            href={`/trips/${trip.id}/balances`}
+            className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-700/40 transition-colors"
+        >
+            <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                    <p className="font-medium text-gray-100 truncate">
+                        {trip.name || trip.destination}
+                    </p>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${badge.classes}`}>
+                        {badge.label}
+                    </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5 truncate">
+                    {trip.name && `${trip.destination} • `}
+                    {formatDate(trip.startTime)}
+                    {trip.endTime && ` – ${formatDate(trip.endTime)}`}
+                </p>
+            </div>
+            <div className="text-right text-xs text-gray-400 shrink-0">
+                <div>{trip.participants?.length ?? 0} ppl</div>
+                <div className="tabular-nums">
+                    {totals.length === 0
+                        ? '—'
+                        : totals.map(([cur, sum]) => `${sum.toFixed(0)} ${cur}`).join(' + ')}
+                </div>
+            </div>
+        </Link>
+    );
+}
+
 interface DashboardProps {
     user: User
     trips: Trip[]
@@ -90,21 +131,57 @@ export default function Dashboard({
         await logout();
     };
 
-    const getUpcomingTrip = (trips: Trip[]): Trip | undefined => {
-        if (!trips || trips.length === 0) return undefined;
+    const [tripSearchQuery, setTripSearchQuery] = useState('');
+
+    const isActive = (trip: Trip) =>
+        trip.status === TripStatus.Planned || trip.status === TripStatus.InProgress;
+
+    const tripBadge = (trip: Trip): { label: string; classes: string } => {
         const now = Date.now();
-        return trips
-            .filter(trip => {
-                const start = new Date(trip.startTime).getTime();
-                const end = trip.endTime ? new Date(trip.endTime).getTime() : Infinity;
-                return start <= now && now <= end    // ongoing
-                    || start >= now;                 // upcoming
-            })
-            .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-            [0];
-    }
-    const upcomingTrip = getUpcomingTrip(trips);
-    const totalExpensesUpcomingTrip = upcomingTrip?.expenses?.reduce((acc, expense) => acc + expense.amount, 0);
+        const start = new Date(trip.startTime).getTime();
+        const end = trip.endTime ? new Date(trip.endTime).getTime() : null;
+        if (trip.status === TripStatus.Cancelled) {
+            return {label: 'Cancelled', classes: 'bg-gray-700 text-gray-300'};
+        }
+        if (trip.status === TripStatus.Completed) {
+            return {label: 'Completed', classes: 'bg-emerald-700/40 text-emerald-300'};
+        }
+        if (start <= now && (end == null || now <= end)) {
+            return {label: 'Ongoing', classes: 'bg-amber-600 text-white'};
+        }
+        if (start > now) {
+            return {label: 'Upcoming', classes: 'bg-blue-600 text-white'};
+        }
+        return {label: 'Past', classes: 'bg-gray-700 text-gray-300'};
+    };
+
+    const matchesQuery = (trip: Trip, q: string): boolean => {
+        if (!q) return true;
+        const needle = q.toLowerCase();
+        return (
+            (trip.name?.toLowerCase().includes(needle) ?? false) ||
+            trip.destination.toLowerCase().includes(needle) ||
+            (trip.description?.toLowerCase().includes(needle) ?? false)
+        );
+    };
+
+    const filteredTrips = trips.filter(t => matchesQuery(t, tripSearchQuery));
+    const activeTrips = filteredTrips
+        .filter(isActive)
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    const pastTrips = filteredTrips
+        .filter(t => !isActive(t))
+        .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    const featuredTrip = activeTrips[0];
+
+    const tripExpenseTotals = (trip: Trip): Array<[string, number]> => {
+        const totals = (trip.expenses ?? []).reduce<Record<string, number>>((acc, e) => {
+            acc[e.currency] = (acc[e.currency] ?? 0) + e.amount;
+            return acc;
+        }, {});
+        return Object.entries(totals);
+    };
+
     const totalExpensesPaidByMe = expensesPaidByMe?.reduce((acc, expense) => acc + expense.amount, 0) || 0;
 
     const handleCreateTrip = async () => {
@@ -114,8 +191,15 @@ export default function Dashboard({
         try {
             const trimmedName = tripForm.name?.trim();
             const trimmedDescription = tripForm.description?.trim();
+            // Strip PII from participants — backend only resolves by id, and
+            // empty strings on optional pattern-validated fields (e.g. mobile)
+            // would fail @Valid on the request body.
+            const participantRefs = selectedParticipants.map(p => ({
+                id: p.id,
+                username: p.username,
+            } as User));
             const newTrips: Trip[] = [{
-                participants: selectedParticipants,
+                participants: participantRefs,
                 ...(trimmedName ? {name: trimmedName} : {}),
                 destination: tripForm.destination,
                 startTime: tripForm.startTime,
@@ -243,73 +327,28 @@ export default function Dashboard({
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {/* Upcoming Trip Highlight */}
-                <div className="lg:col-span-2">
-                    <div
-                        className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden hover:border-blue-500 transition-colors">
-                        {upcomingTrip ? (
-                            <>
-                                <div className="bg-blue-900/20 p-6 border-b border-gray-700">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-xl font-bold text-gray-100 mb-1">
-                                                {upcomingTrip.name || upcomingTrip.destination}
-                                            </h3>
-                                            {upcomingTrip.name && (
-                                                <div className="flex items-center text-gray-400">
-                                                    <MapPin className="w-4 h-4 mr-1"/>
-                                                    <span className="text-sm">{upcomingTrip.destination}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <span
-                                            className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                            {new Date(upcomingTrip.startTime) > new Date() ? "Upcoming" : "Ongoing"}
-                        </span>
-                                    </div>
+                {/* Trips */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+                        <div className="p-6 border-b border-gray-700 flex items-center justify-between gap-4">
+                            <h3 className="text-lg font-semibold text-gray-100">Your Trips</h3>
+                            <div className="relative w-full max-w-xs">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Search className="h-4 w-4 text-gray-400"/>
                                 </div>
+                                <input
+                                    type="text"
+                                    className="block w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-100 placeholder-gray-400 text-sm"
+                                    placeholder="Search trips..."
+                                    value={tripSearchQuery}
+                                    onChange={(e) => setTripSearchQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
 
-                                <div className="p-6">
-                                    <div className="flex items-center text-gray-400 mb-4">
-                                        <Calendar className="w-4 h-4 mr-1"/>
-                                        <span className="text-sm">
-                            {formatDate(upcomingTrip.startTime)}
-                                            {upcomingTrip.endTime && ` - ${formatDate(upcomingTrip.endTime)}`}
-                        </span>
-                                    </div>
-
-                                    {upcomingTrip.description && (
-                                        <p className="text-gray-300 mb-4">{upcomingTrip.description}</p>
-                                    )}
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex items-center">
-                                            <Users className="w-5 h-5 text-gray-400 mr-2"/>
-                                            <span className="text-sm text-gray-300">
-                                {upcomingTrip.participants?.length || 0} participants
-                            </span>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <DollarSign className="w-5 h-5 text-gray-400 mr-2"/>
-                                            <span className="text-sm text-gray-300">
-                                ${totalExpensesUpcomingTrip || 0} total
-                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4">
-                                        <Link
-                                            href={`/trips/${upcomingTrip.id}/balances`}
-                                            className="inline-flex items-center text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                                        >
-                                            View balances & settle up →
-                                        </Link>
-                                    </div>
-                                </div>
-                            </>
-                        ) : (
+                        {trips.length === 0 ? (
                             <div className="p-6 text-center">
-                                <h3 className="text-xl font-bold text-gray-100 mb-2">No upcoming trips</h3>
+                                <h3 className="text-xl font-bold text-gray-100 mb-2">No trips yet</h3>
                                 <p className="text-gray-400 mb-4">Create your first trip to get started!</p>
                                 <button
                                     onClick={() => setIsDialogOpen(true)}
@@ -319,6 +358,99 @@ export default function Dashboard({
                                     Create New Trip
                                 </button>
                                 {error && <div className="mt-4 text-red-400 text-sm">{error}</div>}
+                            </div>
+                        ) : filteredTrips.length === 0 ? (
+                            <div className="p-6 text-center text-gray-400">No trips match your search.</div>
+                        ) : (
+                            <div className="p-6 space-y-6">
+                                {/* Featured trip */}
+                                {featuredTrip && (
+                                    <Link
+                                        href={`/trips/${featuredTrip.id}/balances`}
+                                        className="block bg-blue-900/20 rounded-lg border border-blue-700/40 hover:border-blue-500 transition-colors overflow-hidden"
+                                    >
+                                        <div className="p-5 border-b border-blue-700/30">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <h4 className="text-lg font-bold text-gray-100">
+                                                        {featuredTrip.name || featuredTrip.destination}
+                                                    </h4>
+                                                    {featuredTrip.name && (
+                                                        <div className="flex items-center text-gray-400 mt-1">
+                                                            <MapPin className="w-4 h-4 mr-1"/>
+                                                            <span className="text-sm">{featuredTrip.destination}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {(() => {
+                                                    const b = tripBadge(featuredTrip);
+                                                    return (
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${b.classes}`}>
+                                                            {b.label}
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
+                                        <div className="p-5">
+                                            <div className="flex items-center text-gray-400 text-sm mb-3">
+                                                <Calendar className="w-4 h-4 mr-1"/>
+                                                {formatDate(featuredTrip.startTime)}
+                                                {featuredTrip.endTime && ` – ${formatDate(featuredTrip.endTime)}`}
+                                            </div>
+                                            {featuredTrip.description && (
+                                                <p className="text-gray-300 text-sm mb-3">{featuredTrip.description}</p>
+                                            )}
+                                            <div className="flex items-center gap-6 text-sm text-gray-300">
+                                                <span className="flex items-center">
+                                                    <Users className="w-4 h-4 mr-1 text-gray-400"/>
+                                                    {featuredTrip.participants?.length ?? 0} participants
+                                                </span>
+                                                <span className="flex items-center">
+                                                    <DollarSign className="w-4 h-4 mr-1 text-gray-400"/>
+                                                    {tripExpenseTotals(featuredTrip).length === 0
+                                                        ? 'No expenses yet'
+                                                        : tripExpenseTotals(featuredTrip)
+                                                            .map(([cur, sum]) => `${sum.toFixed(2)} ${cur}`)
+                                                            .join(' + ')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                )}
+
+                                {/* Upcoming list (excluding featured) */}
+                                {activeTrips.length > 1 && (
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                                            Upcoming & Ongoing
+                                        </h4>
+                                        <div className="divide-y divide-gray-700 border border-gray-700 rounded-lg overflow-hidden">
+                                            {activeTrips.slice(1).map(trip => (
+                                                <TripRow key={trip.id} trip={trip} badge={tripBadge(trip)} totals={tripExpenseTotals(trip)}/>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Past list */}
+                                {pastTrips.length > 0 && (
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                                            Past
+                                        </h4>
+                                        <div className="divide-y divide-gray-700 border border-gray-700 rounded-lg overflow-hidden">
+                                            {pastTrips.map(trip => (
+                                                <TripRow key={trip.id} trip={trip} badge={tripBadge(trip)} totals={tripExpenseTotals(trip)}/>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* No active trips but query matched none of them */}
+                                {!featuredTrip && pastTrips.length === 0 && (
+                                    <div className="text-gray-400 text-sm">No trips to show.</div>
+                                )}
                             </div>
                         )}
                     </div>
