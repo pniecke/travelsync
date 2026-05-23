@@ -23,4 +23,9 @@ interface TripRepository : CrudRepository<TripEntity, UUID> {
         status: TripStatus,
         startTime: LocalDateTime,
     ): List<TripEntity>
+
+    fun findAllByStatusAndEndTimeIsNotNullAndEndTimeLessThanEqual(
+        status: TripStatus,
+        endTime: LocalDateTime,
+    ): List<TripEntity>
 }
