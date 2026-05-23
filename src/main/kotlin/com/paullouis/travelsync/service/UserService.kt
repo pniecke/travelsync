@@ -58,7 +58,9 @@ class UserService(
         val googleId = oidcUser.subject
             ?: throw AuthenticationCredentialsNotFoundException("Google ID (subject) not found in OIDC claims")
 
-        val email = oidcUser.email
+        // Lowercase the email everywhere we read or write it so DB lookups stay
+        // consistent with how DatabaseAuthService.localSignUp stores it.
+        val email = oidcUser.email?.trim()?.lowercase()
             ?: throw AuthenticationCredentialsNotFoundException("Email not found in OIDC claims")
 
         logger.debug("Looking up user by external ID: $googleId")
@@ -88,7 +90,7 @@ class UserService(
         val username = oidcUser.preferredUsername ?: oidcUser.email?.substringBefore("@") ?: "user"
         val firstName = oidcUser.givenName ?: ""
         val lastName = oidcUser.familyName ?: ""
-        val email = oidcUser.email
+        val email = oidcUser.email?.trim()?.lowercase()
             ?: throw AuthenticationCredentialsNotFoundException("Email is required for user creation")
         val locale = getUserLocale(oidcUser.locale)
         val mobile = oidcUser.phoneNumber ?: ""
@@ -139,6 +141,17 @@ class UserService(
 
         val newUsername = update.username?.trim()?.takeIf { it.isNotBlank() } ?: existing.username
         val newEmail = update.email?.trim()?.lowercase()?.takeIf { it.isNotBlank() } ?: existing.email
+
+        // Identifier fields (username, email) are owned by the upstream IdP for
+        // OAuth-linked accounts. Letting users diverge them from their IdP
+        // record breaks future logins and confuses cross-references; refuse.
+        if (existing.authProvider != AuthProvider.DATABASE) {
+            if (newUsername != existing.username || newEmail != existing.email) {
+                throw IllegalArgumentException(
+                    "Username and email are managed by your identity provider and cannot be changed here."
+                )
+            }
+        }
 
         if (newUsername != existing.username && userRepository.findByUsername(newUsername) != null) {
             throw DuplicateUserException("Username '$newUsername' is already taken")

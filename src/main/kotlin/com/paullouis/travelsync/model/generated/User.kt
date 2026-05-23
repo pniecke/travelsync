@@ -53,7 +53,7 @@ data class User(
     @Schema(example = "john.doe@sample.ch", description = "Email address of the user")
     @get:JsonProperty("email") val email: kotlin.String? = null,
 
-    @get:Pattern(regexp="^[+0-9 ()-]+$")
+    @get:Pattern(regexp="^[+0-9 ()-]*$")
     @get:Size(max=32)
     @Schema(example = "+41 79 123 45 67", description = "Mobile phone number of the user")
     @get:JsonProperty("mobile") val mobile: kotlin.String? = null,

@@ -64,6 +64,14 @@ function toProfileForm(u: User): ProfileFormState {
 export default function Settings({user: initialUser}: SettingsPageProps) {
     const [user, setUser] = useState<User>(initialUser);
 
+    // For OAuth-linked accounts, username and email are owned by the upstream
+    // identity provider — diverging them locally breaks future logins.
+    const isIdentityLockedByIdp =
+        !!user.authProvider && user.authProvider !== AuthProvider.Database;
+    const identityLockHint = isIdentityLockedByIdp
+        ? `Managed by ${providerLabel(user.authProvider!)}.`
+        : "";
+
     // Profile edit state
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [profileForm, setProfileForm] = useState<ProfileFormState>(toProfileForm(initialUser));
@@ -266,6 +274,12 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
                                 value={profileForm.username}
                                 onChange={handleProfileChange("username")}
                                 required
+                                minLength={3}
+                                maxLength={64}
+                                pattern="^[A-Za-z0-9._-]+$"
+                                title="3–64 characters: letters, digits, dot, underscore, or hyphen."
+                                disabled={isIdentityLockedByIdp}
+                                hint={isIdentityLockedByIdp ? identityLockHint : undefined}
                             />
                             <TextField
                                 id="email"
@@ -274,6 +288,9 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
                                 autoComplete="email"
                                 value={profileForm.email ?? ""}
                                 onChange={handleProfileChange("email")}
+                                maxLength={254}
+                                disabled={isIdentityLockedByIdp}
+                                hint={isIdentityLockedByIdp ? identityLockHint : undefined}
                             />
                             <TextField
                                 id="firstName"
@@ -281,6 +298,7 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
                                 autoComplete="given-name"
                                 value={profileForm.firstName ?? ""}
                                 onChange={handleProfileChange("firstName")}
+                                maxLength={100}
                             />
                             <TextField
                                 id="lastName"
@@ -288,6 +306,7 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
                                 autoComplete="family-name"
                                 value={profileForm.lastName ?? ""}
                                 onChange={handleProfileChange("lastName")}
+                                maxLength={100}
                             />
                             <TextField
                                 id="mobile"
@@ -296,6 +315,9 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
                                 autoComplete="tel"
                                 value={profileForm.mobile ?? ""}
                                 onChange={handleProfileChange("mobile")}
+                                maxLength={32}
+                                pattern="^[+0-9 ()\-]*$"
+                                title="Digits, spaces, +, (, ), or -. Leave empty to clear."
                             />
                             <TextField
                                 id="locale"
@@ -303,6 +325,7 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
                                 placeholder="e.g. en-US, de-CH"
                                 value={profileForm.locale ?? ""}
                                 onChange={handleProfileChange("locale")}
+                                maxLength={16}
                             />
                         </div>
 
@@ -447,9 +470,15 @@ interface TextFieldProps {
     autoComplete?: string;
     placeholder?: string;
     required?: boolean;
+    pattern?: string;
+    minLength?: number;
+    maxLength?: number;
+    title?: string;
+    disabled?: boolean;
+    hint?: string;
 }
 
-function TextField({id, label, value, onChange, type = "text", autoComplete, placeholder, required}: TextFieldProps) {
+function TextField({id, label, value, onChange, type = "text", autoComplete, placeholder, required, pattern, minLength, maxLength, title, disabled, hint}: TextFieldProps) {
     return (
         <div>
             <label htmlFor={id} className="block text-sm font-medium text-gray-300 mb-1">
@@ -464,8 +493,17 @@ function TextField({id, label, value, onChange, type = "text", autoComplete, pla
                 value={value}
                 onChange={onChange}
                 required={required}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-100"
+                pattern={pattern}
+                minLength={minLength}
+                maxLength={maxLength}
+                title={title}
+                disabled={disabled}
+                aria-describedby={hint ? `${id}-hint` : undefined}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-100 disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed"
             />
+            {hint && (
+                <p id={`${id}-hint`} className="text-xs text-gray-400 mt-1">{hint}</p>
+            )}
         </div>
     );
 }

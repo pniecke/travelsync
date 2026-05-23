@@ -909,7 +909,7 @@ components:
         mobile:
           type: string
           maxLength: 32
-          pattern: '^[+0-9 ()-]+$'
+          pattern: '^[+0-9 ()-]*$'
           description: Mobile phone number of the user
           example: "+41 79 123 45 67"
         locale:
@@ -1102,7 +1102,7 @@ components:
         mobile:
           type: string
           maxLength: 32
-          pattern: '^[+0-9 ()-]+$'
+          pattern: '^[+0-9 ()-]*$'
           example: "+41 79 123 45 67"
         locale:
           type: string

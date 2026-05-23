@@ -42,7 +42,7 @@ data class UpdateUserRequest(
     @Schema(example = "john.doe@sample.ch", description = "")
     @get:JsonProperty("email") val email: kotlin.String? = null,
 
-    @get:Pattern(regexp="^[+0-9 ()-]+$")
+    @get:Pattern(regexp="^[+0-9 ()-]*$")
     @get:Size(max=32)
     @Schema(example = "+41 79 123 45 67", description = "")
     @get:JsonProperty("mobile") val mobile: kotlin.String? = null,
