@@ -9,6 +9,9 @@ models/ExpenseShare.ts
 models/ExpenseShareType.ts
 models/MeResponse.ts
 models/MessageResponse.ts
+models/Notification.ts
+models/NotificationList.ts
+models/NotificationType.ts
 models/Settlement.ts
 models/SignInRequest.ts
 models/SignUpRequest.ts

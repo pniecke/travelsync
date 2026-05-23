@@ -21,6 +21,7 @@ import {AuthProvider, User} from "@/types";
 import {createServerApiClient} from "@/services/apiClient";
 import {getLoggedInUser} from "@/services/userService";
 import apiClient, {ensureCsrf} from "@/services/apiClient";
+import Header from "@/components/Header";
 
 interface SettingsPageProps {
     user: User
@@ -199,6 +200,9 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
 
     return (
         <div className="p-6 max-w-4xl mx-auto">
+            <div className="flex justify-end mb-4">
+                <Header/>
+            </div>
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <Link

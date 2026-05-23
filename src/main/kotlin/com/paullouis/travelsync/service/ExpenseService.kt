@@ -34,6 +34,7 @@ class ExpenseService(
     private val userRepository: UserRepository,
     private val userService: UserService,
     private val userMapper: UserMapper,
+    private val notificationService: INotificationService,
 ) : IExpenseService {
 
     override fun getExpenses(
@@ -102,6 +103,7 @@ class ExpenseService(
             expenseShareRepository.saveAll(shareEntities)
             savedExpense.shares.clear()
             savedExpense.shares.addAll(shareEntities)
+            notificationService.notifyExpenseInvolvingYou(savedExpense, current)
             savedExpense
         }
         return saved.map(expenseMapper::toDto)

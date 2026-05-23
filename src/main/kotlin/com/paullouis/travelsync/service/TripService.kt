@@ -21,6 +21,7 @@ class TripService(
     private val tripMapper: TripMapper,
     private val userMapper: UserMapper,
     private val userService: UserService,
+    private val notificationService: INotificationService,
 ) : ITripService {
 
     override fun getAllTrips(): List<Trip> {
@@ -44,6 +45,7 @@ class TripService(
 
     @Transactional
     override fun createTrips(trips: List<Trip>): List<Trip> {
+        val actor = userMapper.toEntity(userService.getOrCreateUser())
         val tripEntities: List<TripEntity> = trips.map { trip ->
             TripEntity(
                 name = trip.name,
@@ -55,7 +57,10 @@ class TripService(
                 status = trip.status,
             )
         }
-        val savedTrips = tripRepository.saveAll(tripEntities)
+        val savedTrips = tripRepository.saveAll(tripEntities).toList()
+        savedTrips.forEach { saved ->
+            notificationService.notifyAddedToTrip(saved, saved.participants, actor)
+        }
         return savedTrips.map { tripMapper.toDto(it) }
     }
 
@@ -72,6 +77,9 @@ class TripService(
         }
 
         val participantEntities = resolveParticipants(trip.participants)
+        val previousParticipantIds = existingTripEntity.participants.mapNotNull { it.id }.toSet()
+        val addedParticipants = participantEntities.filter { it.id != null && it.id !in previousParticipantIds }
+
         var updatedTrip = existingTripEntity.copy(
             name = trip.name,
             participants = participantEntities.toMutableList(),
@@ -82,6 +90,11 @@ class TripService(
             status = trip.status,
         )
         updatedTrip = tripRepository.save(updatedTrip)
+
+        if (addedParticipants.isNotEmpty()) {
+            val actor = userMapper.toEntity(userService.getOrCreateUser())
+            notificationService.notifyAddedToTrip(updatedTrip, addedParticipants, actor)
+        }
         return tripMapper.toDto(updatedTrip)
     }
 

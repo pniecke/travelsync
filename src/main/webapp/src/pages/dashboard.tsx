@@ -1,8 +1,8 @@
 'use client'
 
-import {Calendar, Check, DollarSign, LogOut, MapPin, Plus, Search, Settings, Shield, UserPlus, Users, X} from "lucide-react";
+import {Calendar, Check, DollarSign, MapPin, Plus, Search, UserPlus, Users, X} from "lucide-react";
 import React, {useEffect, useState} from "react";
-import {Expense, Trip, TripStatus, User, UserRole} from "@/types";
+import {Expense, Trip, TripStatus, User} from "@/types";
 import {createTrip, getMyTrips} from "@/services/tripService";
 import {GetServerSideProps} from "next";
 import {createServerApiClient} from "@/services/apiClient";
@@ -10,7 +10,7 @@ import Link from "next/link";
 import {getExpenses} from "@/services/expenseService";
 import ExpenseDialog from "@/components/ExpenseDialog";
 import {formatDate} from "@/utils/date";
-import {useAuth} from "@/context/AuthProvider";
+import Header from "@/components/Header";
 
 function TripRow({
                      trip,
@@ -105,7 +105,6 @@ export default function Dashboard({
                                       expensesPaidByMe: initialExpensesPaidByMe,
                                       allUsers: initialAllUsers
                                   }: DashboardProps) {
-    const {logout} = useAuth();
     const [trips, setTrips] = useState<Trip[]>(initialTrips);
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -126,10 +125,6 @@ export default function Dashboard({
     const [myExpenses, setMyExpenses] = useState<Expense[]>(initialMyExpenses);
     const [expensesPaidByMe, setExpensesPaidByMe] = useState<Expense[]>(initialExpensesPaidByMe || []);
     const [showExpenseDialog, setShowExpenseDialog] = useState(false);
-
-    const handleLogout = async () => {
-        await logout();
-    };
 
     const [tripSearchQuery, setTripSearchQuery] = useState('');
 
@@ -291,34 +286,7 @@ export default function Dashboard({
                             Welcome back, <span className="text-blue-400">{user!.firstName || user!.username}</span>
                         </h1>
                     </div>
-                    <div className="flex items-center gap-2">
-                        {user.roles?.includes(UserRole.Admin) && (
-                            <Link
-                                href="/admin/security"
-                                className="flex items-center gap-2 px-4 py-2 bg-amber-700 hover:bg-amber-600 text-white rounded-lg transition-colors"
-                                title="Logging & Monitoring"
-                            >
-                                <Shield className="w-4 h-4"/>
-                                <span>Security</span>
-                            </Link>
-                        )}
-                        <Link
-                            href="/settings"
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
-                            title="Settings"
-                        >
-                            <Settings className="w-4 h-4"/>
-                            <span>Settings</span>
-                        </Link>
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
-                            title="Sign out"
-                        >
-                            <LogOut className="w-4 h-4"/>
-                            <span>Logout</span>
-                        </button>
-                    </div>
+                    <Header/>
                 </div>
                 <p className="text-lg font-medium text-gray-300 pl-9">
                     Here&apos;s what&apos;s happening with your trips

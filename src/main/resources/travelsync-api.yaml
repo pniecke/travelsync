@@ -18,6 +18,7 @@ tags:
   - name: Trip
   - name: Expense
   - name: User
+  - name: Notification
 
 paths:
   # --- Health ----------------------------------------------------------------
@@ -597,6 +598,76 @@ paths:
         '401':
           description: Unauthorized - Authentication required
 
+  # --- Notification ----------------------------------------------------------
+  /notifications:
+    get:
+      tags: [ Notification ]
+      operationId: getNotifications
+      summary: List notifications for the current user
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: unreadOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Notifications for the authenticated user, newest first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationList'
+        '401':
+          description: Unauthorized - Authentication required
+
+  /notifications/{id}/read:
+    post:
+      tags: [ Notification ]
+      operationId: markNotificationRead
+      summary: Mark a single notification as read (idempotent)
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The updated notification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '403':
+          description: Forbidden - notification belongs to another user
+        '404':
+          description: Notification not found
+
+  /notifications/read-all:
+    post:
+      tags: [ Notification ]
+      operationId: markAllNotificationsRead
+      summary: Mark all of the current user's unread notifications as read
+      security:
+        - OidcAuth: [ ]
+      responses:
+        '204':
+          description: All notifications marked as read
+
 components:
   securitySchemes:
     OidcAuth:
@@ -962,6 +1033,67 @@ components:
       enum: [ DATABASE, GOOGLE, APPLE ]
       description: Authentication backend used by the account
       example: "DATABASE"
+
+    NotificationType:
+      type: string
+      enum: [ EXPENSE_INVOLVING_YOU, ADDED_TO_TRIP, TRIP_STARTED ]
+      description: Kind of in-app notification.
+      example: "EXPENSE_INVOLVING_YOU"
+
+    Notification:
+      type: object
+      required:
+        - id
+        - type
+        - title
+        - message
+        - read
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/NotificationType'
+        tripId:
+          type: string
+          format: uuid
+          description: Trip referenced by this notification, if any
+        expenseId:
+          type: string
+          format: uuid
+          description: Expense referenced by this notification, if any
+        actorUserId:
+          type: string
+          format: uuid
+          description: User who caused the event, if applicable
+        title:
+          type: string
+          maxLength: 200
+        message:
+          type: string
+          maxLength: 1000
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: local-date-time
+
+    NotificationList:
+      type: object
+      required:
+        - items
+        - unreadCount
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Notification'
+        unreadCount:
+          type: integer
+          format: int64
+          minimum: 0
 
     # --- Auth requests / responses ----------------------------------------
     SignUpRequest:

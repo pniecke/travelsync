@@ -21,6 +21,7 @@ import {useState} from "react";
 import SettleUpDialog from "@/components/SettleUpDialog";
 import {deleteSettlement} from "@/services/splitService";
 import {formatDate} from "@/utils/date";
+import Header from "@/components/Header";
 
 interface PageProps {
     user: User;
@@ -149,6 +150,9 @@ export default function TripBalancesPage({
 
     return (
         <div className="p-6 max-w-5xl mx-auto">
+            <div className="flex justify-end mb-4">
+                <Header/>
+            </div>
             {error && (
                 <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">
                     {error}

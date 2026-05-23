@@ -9,6 +9,7 @@ import ExpenseDialog from "@/components/ExpenseDialog";
 import {formatDate} from "@/utils/date";
 import {GetServerSideProps} from "next";
 import {createServerApiClient} from "@/services/apiClient";
+import Header from "@/components/Header";
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
     const cookieHeader = ctx.req.headers.cookie
@@ -118,6 +119,9 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
+            <div className="flex justify-end mb-4">
+                <Header/>
+            </div>
             {error && (
                 <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">
                     {error}
