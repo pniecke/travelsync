@@ -144,7 +144,7 @@ export const Login: React.FC = () => {
                         <button
                             type="button"
                             className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-slate-800"
-                            onClick={() => window.location.href = "/oauth2/authorization/google"}
+                            onClick={() => window.location.href = "/api/oauth2/authorization/google"}
                         >
                             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                                 <path

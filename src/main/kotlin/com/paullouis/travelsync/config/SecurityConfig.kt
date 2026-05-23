@@ -124,7 +124,12 @@ class SecurityConfig(
             }
             .oauth2Login { oauth2 ->
                 oauth2
-                    .loginPage("/oauth2/authorization/google")
+                    // Relocate OAuth2 endpoints under /api so they share the
+                    // dispatcher servlet (spring.mvc.servlet.path=/api) and
+                    // are reached by the Spring Security filter chain.
+                    .authorizationEndpoint { it.baseUri("/api/oauth2/authorization") }
+                    .redirectionEndpoint { it.baseUri("/api/login/oauth2/code/*") }
+                    .loginPage("/api/oauth2/authorization/google")
                     .userInfoEndpoint { u -> u.oidcUserService(customOidcUserService) }
                     .successHandler(oauth2SuccessHandler)
                     .failureUrl("$frontendUrl/login?error=oauth_failed")
