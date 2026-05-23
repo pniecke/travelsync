@@ -27,12 +27,15 @@ class TestDataInitializer(
     fun init() {
         var user1 = getUser1()
         var user2 = getUser2()
+        var user3 = getUser3()
         if (userRepository.count() == 0L) {
             user1 = userRepository.save(user1)
             user2 = userRepository.save(user2)
+            user3 = userRepository.save(user3)
         } else {
             user1 = userRepository.findByUsername("mausi") ?: user1
             user2 = userRepository.findByUsername("admin") ?: user2
+            user3 = userRepository.findByUsername("paul") ?: userRepository.save(user3)
         }
 
         val trip1 = getTrip1(mutableListOf(user1, user2))
@@ -101,6 +104,24 @@ class TestDataInitializer(
             expenses = mutableListOf(),
             paidExpenses = mutableListOf(),
             roles = setOf(UserRole.ADMIN)
+        )
+    }
+
+    private fun getUser3(): UserEntity {
+        return UserEntity(
+            password = passwordEncoder.encode("paul"),
+            email = "paul@bla.com",
+            username = "paul",
+            firstName = "Paul",
+            lastName = "Niecke",
+            mobile = "0612345678",
+            locale = Locale.GERMAN,
+            trips = mutableListOf(),
+            authProvider = AuthProvider.DATABASE,
+            externalId = null,
+            expenses = mutableListOf(),
+            paidExpenses = mutableListOf(),
+            roles = setOf(UserRole.USER)
         )
     }
 
