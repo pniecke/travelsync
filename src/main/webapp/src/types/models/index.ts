@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './ApiError';
+export * from './AuthProvider';
 export * from './ChangePasswordRequest';
 export * from './CreateSettlementRequest';
 export * from './Currency';

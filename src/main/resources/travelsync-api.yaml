@@ -929,6 +929,14 @@ components:
           description: Password of the user (write-only)
           writeOnly: true
           example: "securepassword"
+        authProvider:
+          $ref: '#/components/schemas/AuthProvider'
+          readOnly: true
+          description: |
+            Identifies the authentication backend the account uses. Read-only;
+            assigned at signup or first OAuth login. Clients use this to hide
+            password-management UI for accounts they can't actually manage
+            (e.g., Google-only accounts).
 
     # --- Enums -------------------------------------------------------------
     Currency:
@@ -948,6 +956,12 @@ components:
       enum: [ USER, ADMIN ]
       description: Role of the user
       example: "USER"
+
+    AuthProvider:
+      type: string
+      enum: [ DATABASE, GOOGLE, APPLE ]
+      description: Authentication backend used by the account
+      example: "DATABASE"
 
     # --- Auth requests / responses ----------------------------------------
     SignUpRequest:

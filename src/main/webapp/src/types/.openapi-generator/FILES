@@ -1,5 +1,6 @@
 index.ts
 models/ApiError.ts
+models/AuthProvider.ts
 models/ChangePasswordRequest.ts
 models/CreateSettlementRequest.ts
 models/Currency.ts

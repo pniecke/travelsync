@@ -20,6 +20,13 @@ import {
     UserRoleToJSON,
     UserRoleToJSONTyped,
 } from './UserRole';
+import type { AuthProvider } from './AuthProvider';
+import {
+    AuthProviderFromJSON,
+    AuthProviderFromJSONTyped,
+    AuthProviderToJSON,
+    AuthProviderToJSONTyped,
+} from './AuthProvider';
 
 /**
  * 
@@ -81,7 +88,15 @@ export interface User {
      * @memberof User
      */
     password?: string;
+    /**
+     * 
+     * @type {AuthProvider}
+     * @memberof User
+     */
+    authProvider?: AuthProvider;
 }
+
+
 
 /**
  * Check if a given object implements the User interface.
@@ -110,6 +125,7 @@ export function UserFromJSONTyped(json: any, ignoreDiscriminator: boolean): User
         'locale': json['locale'] == null ? undefined : json['locale'],
         'roles': json['roles'] == null ? undefined : ((json['roles'] as Array<any>).map(UserRoleFromJSON)),
         'password': json['password'] == null ? undefined : json['password'],
+        'authProvider': json['authProvider'] == null ? undefined : AuthProviderFromJSON(json['authProvider']),
     };
 }
 
@@ -133,6 +149,7 @@ export function UserToJSONTyped(value?: User | null, ignoreDiscriminator: boolea
         'locale': value['locale'],
         'roles': value['roles'] == null ? undefined : ((value['roles'] as Array<any>).map(UserRoleToJSON)),
         'password': value['password'],
+        'authProvider': AuthProviderToJSON(value['authProvider']),
     };
 }
 

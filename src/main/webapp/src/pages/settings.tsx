@@ -17,7 +17,7 @@ import React, {useState} from "react";
 import {GetServerSideProps} from "next";
 import Link from "next/link";
 import {AxiosError} from "axios";
-import {User} from "@/types";
+import {AuthProvider, User} from "@/types";
 import {createServerApiClient} from "@/services/apiClient";
 import {getLoggedInUser} from "@/services/userService";
 import apiClient, {ensureCsrf} from "@/services/apiClient";
@@ -41,6 +41,14 @@ export const getServerSideProps: GetServerSideProps<SettingsPageProps> = async (
 }
 
 type ProfileFormState = Pick<User, "username" | "firstName" | "lastName" | "email" | "mobile" | "locale">;
+
+function providerLabel(p: AuthProvider): string {
+    switch (p) {
+        case AuthProvider.Google: return "Google";
+        case AuthProvider.Apple: return "Apple";
+        default: return "your identity provider";
+    }
+}
 
 function toProfileForm(u: User): ProfileFormState {
     return {
@@ -319,7 +327,22 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
                 )}
             </section>
 
-            {/* Change Password Section */}
+            {/* Change Password Section — hidden for accounts whose password
+                is managed by an external IdP (e.g. Google). We only hide when
+                authProvider is explicitly non-DATABASE so legacy users with a
+                null provider keep seeing the form. */}
+            {user.authProvider && user.authProvider !== AuthProvider.Database ? (
+                <section className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 mb-6">
+                    <div className="p-6 border-b border-gray-700 flex items-center gap-3">
+                        <KeyRound className="w-5 h-5 text-blue-400"/>
+                        <h2 className="text-lg font-semibold text-gray-100">Password</h2>
+                    </div>
+                    <div className="p-6 text-sm text-gray-300 max-w-md">
+                        Your password is managed by {providerLabel(user.authProvider)}. To change it, update it
+                        through {providerLabel(user.authProvider)} and use “Sign in with {providerLabel(user.authProvider)}” next time.
+                    </div>
+                </section>
+            ) : (
             <section className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 mb-6">
                 <div className="p-6 border-b border-gray-700 flex items-center gap-3">
                     <KeyRound className="w-5 h-5 text-blue-400"/>
@@ -390,6 +413,7 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
                     </div>
                 </form>
             </section>
+            )}
 
             {/* Report Bug Section */}
             <section className="bg-gray-800 rounded-xl shadow-lg border border-gray-700">

@@ -1,7 +1,10 @@
 package com.paullouis.travelsync.model.generated
 
 import java.util.Objects
+import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonValue
+import com.paullouis.travelsync.model.generated.AuthProvider
 import com.paullouis.travelsync.model.generated.UserRole
 import jakarta.validation.constraints.DecimalMax
 import jakarta.validation.constraints.DecimalMin
@@ -25,6 +28,7 @@ import io.swagger.v3.oas.annotations.media.Schema
  * @param locale Locale of the user
  * @param roles 
  * @param password Password of the user (write-only)
+ * @param authProvider 
  */
 data class User(
 
@@ -65,7 +69,11 @@ data class User(
 
     @get:Size(min=12,max=72)
     @Schema(example = "securepassword", description = "Password of the user (write-only)")
-    @get:JsonProperty("password") val password: kotlin.String? = null
+    @get:JsonProperty("password") val password: kotlin.String? = null,
+
+    @field:Valid
+    @Schema(example = "null", description = "")
+    @get:JsonProperty("authProvider") val authProvider: AuthProvider? = null
     ) {
 
 }
