@@ -10,7 +10,6 @@ import Link from "next/link";
 import {getExpenses} from "@/services/expenseService";
 import ExpenseDialog from "@/components/ExpenseDialog";
 import {formatDate} from "@/utils/date";
-import Header from "@/components/Header";
 
 function TripRow({
                      trip,
@@ -279,14 +278,11 @@ export default function Dashboard({
         <div className="p-6 max-w-7xl mx-auto">
             {/* Welcome Header */}
             <div className="mb-10 pl-4 border-l-4 border-blue-500">
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                        <MapPin className="w-6 h-6 text-blue-400"/>
-                        <h1 className="text-4xl font-bold text-gray-100">
-                            Welcome back, <span className="text-blue-400">{user!.firstName || user!.username}</span>
-                        </h1>
-                    </div>
-                    <Header/>
+                <div className="flex items-center gap-3 mb-3">
+                    <MapPin className="w-6 h-6 text-blue-400"/>
+                    <h1 className="text-4xl font-bold text-gray-100">
+                        Welcome back, <span className="text-blue-400">{user!.firstName || user!.username}</span>
+                    </h1>
                 </div>
                 <p className="text-lg font-medium text-gray-300 pl-9">
                     Here&apos;s what&apos;s happening with your trips

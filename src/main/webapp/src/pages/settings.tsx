@@ -4,7 +4,6 @@ import {
     AlertCircle,
     Bug,
     CheckCircle2,
-    ChevronLeft,
     Eye,
     EyeOff,
     KeyRound,
@@ -21,7 +20,6 @@ import {AuthProvider, User} from "@/types";
 import {createServerApiClient} from "@/services/apiClient";
 import {getLoggedInUser} from "@/services/userService";
 import apiClient, {ensureCsrf} from "@/services/apiClient";
-import Header from "@/components/Header";
 
 interface SettingsPageProps {
     user: User
@@ -200,20 +198,6 @@ export default function Settings({user: initialUser}: SettingsPageProps) {
 
     return (
         <div className="p-6 max-w-4xl mx-auto">
-            <div className="flex justify-end mb-4">
-                <Header/>
-            </div>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <Link
-                    href="/dashboard"
-                    className="flex items-center text-gray-300 hover:text-blue-400 transition-colors group"
-                >
-                    <ChevronLeft className="w-5 h-5 mr-1 group-hover:-translate-x-1 transition-transform"/>
-                    <span className="font-medium">Back to Dashboard</span>
-                </Link>
-            </div>
-
             {/* Page Title */}
             <div className="mb-8 pl-4 border-l-4 border-blue-500">
                 <h1 className="text-3xl font-bold text-gray-100 mb-2">Settings</h1>

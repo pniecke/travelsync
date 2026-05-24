@@ -1,9 +1,8 @@
 'use client'
 
-import {AlertTriangle, ChevronLeft, RefreshCw, Shield, ShieldAlert, ShieldCheck, UserCheck, UserX} from "lucide-react";
+import {AlertTriangle, RefreshCw, Shield, ShieldAlert, ShieldCheck, UserCheck, UserX} from "lucide-react";
 import React, {useState} from "react";
 import {GetServerSideProps} from "next";
-import Link from "next/link";
 import {User, UserRole} from "@/types";
 import {createServerApiClient} from "@/services/apiClient";
 import {getLoggedInUser} from "@/services/userService";
@@ -114,23 +113,14 @@ export default function SecurityPage({initialEvents, initialStats}: SecurityPage
                         <Shield className="w-6 h-6 text-amber-400"/>
                         <h1 className="text-3xl font-bold text-gray-100">Logging &amp; Monitoring</h1>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={refresh}
-                            disabled={refreshing}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 rounded-lg transition-colors"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}/>
-                            <span>Refresh</span>
-                        </button>
-                        <Link
-                            href="/dashboard"
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
-                        >
-                            <ChevronLeft className="w-4 h-4"/>
-                            <span>Back</span>
-                        </Link>
-                    </div>
+                    <button
+                        onClick={refresh}
+                        disabled={refreshing}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-200 rounded-lg transition-colors"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}/>
+                        <span>Refresh</span>
+                    </button>
                 </div>
                 <p className="text-gray-400 pl-9">
                     Track auth failures, account lockouts, and token/throttle abuse.

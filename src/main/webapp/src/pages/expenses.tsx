@@ -2,14 +2,13 @@ import {Expense, Trip, User} from "@/types";
 import React, {useEffect, useState} from "react";
 import {getLoggedInUser} from "@/services/userService";
 import {getMyTrips} from "@/services/tripService";
-import {Calendar, ChevronLeft, DollarSign, Filter, Plus, Search, X} from "lucide-react";
+import {Calendar, DollarSign, Filter, Plus, Search, X} from "lucide-react";
 import {getExpenses} from "@/services/expenseService";
 import Link from "next/link";
 import ExpenseDialog from "@/components/ExpenseDialog";
 import {formatDate} from "@/utils/date";
 import {GetServerSideProps} from "next";
 import {createServerApiClient} from "@/services/apiClient";
-import Header from "@/components/Header";
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
     const cookieHeader = ctx.req.headers.cookie
@@ -119,9 +118,6 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
-            <div className="flex justify-end mb-4">
-                <Header/>
-            </div>
             {error && (
                 <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">
                     {error}
@@ -133,38 +129,28 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
                     </button>
                 </div>
             )}
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <Link
-                    href="/dashboard"
-                    className="flex items-center text-gray-300 hover:text-blue-400 transition-colors group"
-                >
-                    <ChevronLeft className="w-5 h-5 mr-1 group-hover:-translate-x-1 transition-transform"/>
-                    <span className="font-medium">Back to Dashboard</span>
-                </Link>
-                <div className="flex items-center gap-2">
-                    {selectedTripFilter !== 'all' && (
-                        <Link
-                            href={`/trips/${selectedTripFilter}/balances`}
-                            className="flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-lg transition-colors shadow-md"
-                        >
-                            View Balances
-                        </Link>
-                    )}
-                    <button
-                        onClick={() => {
-                            if (trips.length === 0) {
-                                setError("You need to create a trip first before adding expenses.");
-                                return;
-                            }
-                            setShowExpenseDialog(true);
-                        }}
-                        className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors shadow-md"
+            <div className="flex items-center justify-end mb-8 gap-2">
+                {selectedTripFilter !== 'all' && (
+                    <Link
+                        href={`/trips/${selectedTripFilter}/balances`}
+                        className="flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-lg transition-colors shadow-md"
                     >
-                        <Plus className="w-4 h-4 mr-2"/>
-                        Create Expense
-                    </button>
-                </div>
+                        View Balances
+                    </Link>
+                )}
+                <button
+                    onClick={() => {
+                        if (trips.length === 0) {
+                            setError("You need to create a trip first before adding expenses.");
+                            return;
+                        }
+                        setShowExpenseDialog(true);
+                    }}
+                    className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors shadow-md"
+                >
+                    <Plus className="w-4 h-4 mr-2"/>
+                    Create Expense
+                </button>
             </div>
 
             {/* Page Title */}

@@ -15,13 +15,11 @@ import {
     TripBalances,
     User,
 } from "@/types";
-import Link from "next/link";
-import {ArrowRight, ChevronLeft, DollarSign, Handshake, Trash2} from "lucide-react";
+import {ArrowRight, DollarSign, Handshake, Trash2} from "lucide-react";
 import {useState} from "react";
 import SettleUpDialog from "@/components/SettleUpDialog";
 import {deleteSettlement} from "@/services/splitService";
 import {formatDate} from "@/utils/date";
-import Header from "@/components/Header";
 
 interface PageProps {
     user: User;
@@ -150,23 +148,13 @@ export default function TripBalancesPage({
 
     return (
         <div className="p-6 max-w-5xl mx-auto">
-            <div className="flex justify-end mb-4">
-                <Header/>
-            </div>
             {error && (
                 <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">
                     {error}
                 </div>
             )}
 
-            <div className="flex items-center justify-between mb-8">
-                <Link
-                    href="/dashboard"
-                    className="flex items-center text-gray-300 hover:text-blue-400 transition-colors group"
-                >
-                    <ChevronLeft className="w-5 h-5 mr-1 group-hover:-translate-x-1 transition-transform"/>
-                    <span className="font-medium">Back to Dashboard</span>
-                </Link>
+            <div className="flex items-center justify-end mb-8">
                 <button
                     onClick={() => openSettle()}
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors shadow-md"
