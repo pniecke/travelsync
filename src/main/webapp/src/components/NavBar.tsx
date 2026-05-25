@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { DollarSign, LayoutDashboard, MapPin } from "lucide-react";
+import { DollarSign, LayoutDashboard, MapPin, Plane } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import Header from "@/components/Header";
 
@@ -55,6 +55,12 @@ export default function NavBar() {
                         label="Dashboard"
                         icon={<LayoutDashboard className="w-4 h-4" />}
                         active={isActive("/dashboard")}
+                    />
+                    <NavLink
+                        href="/trips"
+                        label="Trips"
+                        icon={<Plane className="w-4 h-4" />}
+                        active={isActive("/trips")}
                     />
                     <NavLink
                         href="/expenses"

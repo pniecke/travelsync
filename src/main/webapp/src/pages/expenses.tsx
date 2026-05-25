@@ -129,36 +129,36 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
                     </button>
                 </div>
             )}
-            <div className="flex items-center justify-end mb-8 gap-2">
-                {selectedTripFilter !== 'all' && (
-                    <Link
-                        href={`/trips/${selectedTripFilter}/balances`}
-                        className="flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-lg transition-colors shadow-md"
+            <div className="mb-8 flex items-start justify-between gap-4">
+                <div className="pl-4 border-l-4 border-blue-500">
+                    <h1 className="text-3xl font-bold text-gray-100 mb-2">All Expenses</h1>
+                    <p className="text-gray-300 font-medium">
+                        {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''} found
+                    </p>
+                </div>
+                <div className="shrink-0 flex items-center gap-2">
+                    {selectedTripFilter !== 'all' && (
+                        <Link
+                            href={`/trips/${selectedTripFilter}/balances`}
+                            className="flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-lg transition-colors shadow-md"
+                        >
+                            View Balances
+                        </Link>
+                    )}
+                    <button
+                        onClick={() => {
+                            if (trips.length === 0) {
+                                setError("You need to create a trip first before adding expenses.");
+                                return;
+                            }
+                            setShowExpenseDialog(true);
+                        }}
+                        className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors shadow-md"
                     >
-                        View Balances
-                    </Link>
-                )}
-                <button
-                    onClick={() => {
-                        if (trips.length === 0) {
-                            setError("You need to create a trip first before adding expenses.");
-                            return;
-                        }
-                        setShowExpenseDialog(true);
-                    }}
-                    className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors shadow-md"
-                >
-                    <Plus className="w-4 h-4 mr-2"/>
-                    Create Expense
-                </button>
-            </div>
-
-            {/* Page Title */}
-            <div className="mb-8 pl-4 border-l-4 border-blue-500">
-                <h1 className="text-3xl font-bold text-gray-100 mb-2">All Expenses</h1>
-                <p className="text-gray-300 font-medium">
-                    {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''} found
-                </p>
+                        <Plus className="w-4 h-4 mr-2"/>
+                        Create Expense
+                    </button>
+                </div>
             </div>
 
             {/* Filters Bar */}
