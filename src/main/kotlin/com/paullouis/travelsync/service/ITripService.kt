@@ -14,6 +14,8 @@ interface ITripService {
 
     fun getById(id: UUID): Trip
 
+    fun getByIdForCurrentUser(id: UUID): Trip
+
     fun getTripsByLoggedInUser(): List<Trip>
 
     fun createTrips(trips: List<Trip>): List<Trip>

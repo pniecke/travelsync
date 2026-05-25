@@ -61,7 +61,7 @@ function TripCard({trip}: { trip: Trip }) {
     const totals = tripExpenseTotals(trip);
     return (
         <Link
-            href={`/trips/${trip.id}/balances`}
+            href={`/trips/${trip.id}`}
             className="block bg-gray-800 rounded-xl shadow-md border border-gray-700 hover:border-blue-500 transition-colors overflow-hidden"
         >
             <div className="p-5 border-b border-gray-700">

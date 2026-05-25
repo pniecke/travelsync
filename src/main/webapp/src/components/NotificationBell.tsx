@@ -39,7 +39,7 @@ export default function NotificationBell() {
         if (!n.read) markRead(n.id);
         setOpen(false);
         if (n.tripId) {
-            router.push(`/trips/${n.tripId}/balances`);
+            router.push(`/trips/${n.tripId}`);
         }
     };
 

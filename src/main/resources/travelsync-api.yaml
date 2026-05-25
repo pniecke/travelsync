@@ -207,6 +207,34 @@ paths:
           description: Unauthorized - Authentication required
 
   /trips/{id}:
+    get:
+      tags: [ Trip ]
+      operationId: getTripById
+      summary: Get a single trip
+      description: Returns the trip if the current user is a participant.
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the trip
+      responses:
+        '200':
+          description: Trip
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '401':
+          description: Unauthorized - Authentication required
+        '403':
+          description: Forbidden - Not a participant
+        '404':
+          description: Trip not found
     put:
       tags: [ Trip ]
       operationId: updateTrip

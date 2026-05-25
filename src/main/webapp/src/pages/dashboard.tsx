@@ -24,7 +24,7 @@ function TripRow({
 }) {
     return (
         <Link
-            href={`/trips/${trip.id}/balances`}
+            href={`/trips/${trip.id}`}
             className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-700/40 transition-colors"
         >
             <div className="min-w-0 flex-1">
@@ -211,7 +211,7 @@ export default function Dashboard({
                                 {/* Featured trip */}
                                 {featuredTrip && (
                                     <Link
-                                        href={`/trips/${featuredTrip.id}/balances`}
+                                        href={`/trips/${featuredTrip.id}`}
                                         className="block bg-blue-900/20 rounded-lg border border-blue-700/40 hover:border-blue-500 transition-colors overflow-hidden"
                                     >
                                         <div className="p-5 border-b border-blue-700/30">

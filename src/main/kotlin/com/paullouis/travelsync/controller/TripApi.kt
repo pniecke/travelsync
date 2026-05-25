@@ -128,6 +128,28 @@ interface TripApi {
 
     @Operation(
         tags = ["Trip",],
+        summary = "Get a single trip",
+        operationId = "getTripById",
+        description = """Returns the trip if the current user is a participant.""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Trip", content = [Content(schema = Schema(implementation = Trip::class))]),
+            ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+            ApiResponse(responseCode = "403", description = "Forbidden - Not a participant"),
+            ApiResponse(responseCode = "404", description = "Trip not found")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.GET],
+            value = ["/trips/{id}"],
+            produces = ["application/json"]
+    )
+    fun getTripById(@Parameter(description = "Unique identifier of the trip", required = true) @PathVariable("id") id: java.util.UUID): ResponseEntity<Trip> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Trip",],
         summary = "List all settlements for a trip",
         operationId = "getTripSettlements",
         description = """""",

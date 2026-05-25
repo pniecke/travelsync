@@ -7,6 +7,11 @@ export async function getMyTrips(client: AxiosInstance = apiClient): Promise<Tri
     return response.data
 }
 
+export async function getTripById(id: string, client: AxiosInstance = apiClient): Promise<Trip> {
+    const response = await client.get<Trip>(`/trips/${id}`);
+    return response.data
+}
+
 export async function createTrip(trips: Trip[]): Promise<Trip[]> {
     await ensureCsrf();
     const response = await apiClient.post('/trips', trips);

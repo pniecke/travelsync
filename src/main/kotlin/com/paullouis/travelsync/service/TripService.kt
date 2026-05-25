@@ -36,6 +36,16 @@ class TripService(
         return tripMapper.toDto(tripEntity)
     }
 
+    override fun getByIdForCurrentUser(id: UUID): Trip {
+        val tripEntity: TripEntity = tripRepository.findById(id)
+            .orElseThrow { NotFoundException("Trip $id not found") }
+        val currentUserId = userService.getOrCreateUser().id
+        if (tripEntity.participants.none { it.id == currentUserId }) {
+            throw ForbiddenException("You are not a participant of this trip")
+        }
+        return tripMapper.toDto(tripEntity)
+    }
+
     override fun getTripsByLoggedInUser(): List<Trip> {
         val currentUser: UserEntity =
             userMapper.toEntity(userService.getOrCreateUser())

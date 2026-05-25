@@ -27,6 +27,10 @@ class TripController(
         return ResponseEntity.ok(tripService.getTripsByLoggedInUser())
     }
 
+    override fun getTripById(@PathVariable id: UUID): ResponseEntity<Trip> {
+        return ResponseEntity.ok(tripService.getByIdForCurrentUser(id))
+    }
+
     override fun createTrip(@Valid @RequestBody trip: List<@Valid Trip>): ResponseEntity<List<Trip>> {
         return ResponseEntity(tripService.createTrips(trip), HttpStatus.CREATED)
     }

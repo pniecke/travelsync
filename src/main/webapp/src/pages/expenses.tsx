@@ -139,7 +139,7 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
                 <div className="shrink-0 flex items-center gap-2">
                     {selectedTripFilter !== 'all' && (
                         <Link
-                            href={`/trips/${selectedTripFilter}/balances`}
+                            href={`/trips/${selectedTripFilter}?tab=balances`}
                             className="flex items-center justify-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-lg transition-colors shadow-md"
                         >
                             View Balances
