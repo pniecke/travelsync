@@ -417,7 +417,7 @@ export default function Dashboard({
                 onCloseAction={() => setIsTripDialogOpen(false)}
                 user={user}
                 allUsers={allUsers}
-                onTripCreatedAction={refreshTrips}
+                onSavedAction={refreshTrips}
             />
             {/* Create Expense Dialog */}
             <ExpenseDialog

@@ -107,6 +107,31 @@ interface TripApi {
 
     @Operation(
         tags = ["Trip",],
+        summary = "Delete a trip",
+        operationId = "deleteTrip",
+        description = """Hard-deletes a trip. Only the trip's creator may delete, and only when
+the trip has no recorded expenses or settlements — otherwise cancel it
+instead.
+""",
+        responses = [
+            ApiResponse(responseCode = "204", description = "Deleted"),
+            ApiResponse(responseCode = "403", description = "Forbidden - Not the trip's creator"),
+            ApiResponse(responseCode = "404", description = "Trip not found"),
+            ApiResponse(responseCode = "409", description = "Trip has expenses or settlements; cancel instead", content = [Content(schema = Schema(implementation = ApiError::class))])
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.DELETE],
+            value = ["/trips/{id}"],
+            produces = ["application/json"]
+    )
+    fun deleteTrip(@Parameter(description = "Unique identifier of the trip", required = true) @PathVariable("id") id: java.util.UUID): ResponseEntity<Unit> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Trip",],
         summary = "Get net balances and suggested settlements for a trip",
         operationId = "getTripBalances",
         description = """""",
@@ -195,7 +220,8 @@ interface TripApi {
         responses = [
             ApiResponse(responseCode = "200", description = "Trip updated successfully", content = [Content(schema = Schema(implementation = Trip::class))]),
             ApiResponse(responseCode = "400", description = "Bad Request - Invalid trip data"),
-            ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required")
+            ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+            ApiResponse(responseCode = "409", description = "Conflict (e.g. removing a participant with expenses)", content = [Content(schema = Schema(implementation = ApiError::class))])
         ],
         security = [ SecurityRequirement(name = "OidcAuth") ]
     )

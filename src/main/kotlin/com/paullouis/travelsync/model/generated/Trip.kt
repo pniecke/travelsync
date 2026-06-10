@@ -28,6 +28,7 @@ import io.swagger.v3.oas.annotations.media.Schema
  * @param name Name of the trip
  * @param endTime End time of the trip
  * @param description Description of the trip
+ * @param createdById Id of the user who created the trip; null for trips created before this field existed
  * @param expenses 
  */
 data class Trip(
@@ -63,6 +64,9 @@ data class Trip(
     @get:Size(max=2000)
     @Schema(example = "A relaxing summer vacation in Sardinia.", description = "Description of the trip")
     @get:JsonProperty("description") val description: kotlin.String? = null,
+
+    @Schema(example = "null", readOnly = true, description = "Id of the user who created the trip; null for trips created before this field existed")
+    @get:JsonProperty("createdById") val createdById: java.util.UUID? = null,
 
     @field:Valid
     @get:Size(max=1000)

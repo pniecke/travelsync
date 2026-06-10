@@ -38,7 +38,7 @@ class TestDataInitializer(
             user3 = userRepository.findByUsername("paul") ?: userRepository.save(user3)
         }
 
-        val trip1 = getTrip1(mutableListOf(user1, user2))
+        val trip1 = getTrip1(mutableListOf(user1, user2), user1)
         if (tripRepository.count() == 0L) {
             tripRepository.save(
                 trip1
@@ -125,7 +125,7 @@ class TestDataInitializer(
         )
     }
 
-    private fun getTrip1(participants: MutableList<UserEntity>): TripEntity {
+    private fun getTrip1(participants: MutableList<UserEntity>, creator: UserEntity): TripEntity {
         return TripEntity(
             name = "Mausi's Summer Vacation",
             description = "A vacation to Sardinia with mausi and mausi",
@@ -134,7 +134,8 @@ class TestDataInitializer(
             startTime = LocalDateTime.of(2025, 7, 5, 11, 0),
             endTime = LocalDateTime.of(2025, 7, 15, 11, 0),
             expenses = mutableListOf(),
-            status = TripStatus.COMPLETED
+            status = TripStatus.COMPLETED,
+            createdBy = creator,
         )
     }
 

@@ -90,6 +90,12 @@ export interface Trip {
      */
     status: TripStatus;
     /**
+     * Id of the user who created the trip; null for trips created before this field existed
+     * @type {string}
+     * @memberof Trip
+     */
+    readonly createdById?: string;
+    /**
      * 
      * @type {Array<Expense>}
      * @memberof Trip
@@ -128,6 +134,7 @@ export function TripFromJSONTyped(json: any, ignoreDiscriminator: boolean): Trip
         'endTime': json['endTime'] == null ? undefined : json['endTime'],
         'description': json['description'] == null ? undefined : json['description'],
         'status': TripStatusFromJSON(json['status']),
+        'createdById': json['createdById'] == null ? undefined : json['createdById'],
         'expenses': json['expenses'] == null ? undefined : ((json['expenses'] as Array<any>).map(ExpenseFromJSON)),
     };
 }
@@ -136,7 +143,7 @@ export function TripToJSON(json: any): Trip {
     return TripToJSONTyped(json, false);
 }
 
-export function TripToJSONTyped(value?: Trip | null, ignoreDiscriminator: boolean = false): any {
+export function TripToJSONTyped(value?: Omit<Trip, 'createdById'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
