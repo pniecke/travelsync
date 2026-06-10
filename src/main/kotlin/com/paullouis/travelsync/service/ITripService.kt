@@ -1,6 +1,8 @@
 package com.paullouis.travelsync.service
 
 import com.paullouis.travelsync.model.generated.Trip
+import com.paullouis.travelsync.model.generated.TripInvitePreview
+import com.paullouis.travelsync.model.generated.TripInviteResponse
 import java.util.*
 
 interface ITripService {
@@ -23,4 +25,10 @@ interface ITripService {
     fun updateTrip(id: UUID, trip: Trip): Trip
 
     fun deleteTrip(id: UUID)
+
+    fun createInvite(tripId: UUID): TripInviteResponse
+
+    fun getInvitePreview(token: String): TripInvitePreview
+
+    fun joinViaInvite(token: String): Trip
 }

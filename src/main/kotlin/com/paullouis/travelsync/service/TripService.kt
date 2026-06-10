@@ -4,6 +4,9 @@ import com.paullouis.travelsync.entity.TripEntity
 import com.paullouis.travelsync.entity.UserEntity
 import com.paullouis.travelsync.model.generated.Currency
 import com.paullouis.travelsync.model.generated.Trip
+import com.paullouis.travelsync.model.generated.TripInvitePreview
+import com.paullouis.travelsync.model.generated.TripInviteResponse
+import com.paullouis.travelsync.model.generated.TripStatus
 import com.paullouis.travelsync.model.generated.User
 import com.paullouis.travelsync.repository.ExpenseRepository
 import com.paullouis.travelsync.repository.SettlementRepository
@@ -16,6 +19,7 @@ import com.paullouis.travelsync.utils.mapper.TripMapper
 import com.paullouis.travelsync.utils.mapper.UserMapper
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
+import java.security.SecureRandom
 import java.util.*
 
 @Service
@@ -147,6 +151,81 @@ class TripService(
         tripRepository.delete(trip)
     }
 
+    @Transactional
+    override fun createInvite(tripId: UUID): TripInviteResponse {
+        val trip: TripEntity = tripRepository.findById(tripId)
+            .orElseThrow { NotFoundException("Trip $tripId not found") }
+
+        val currentUserId = userService.getOrCreateUser().id
+        if (trip.participants.none { it.id == currentUserId }) {
+            throw ForbiddenException("You are not a participant of this trip")
+        }
+
+        // Reuse the existing token so the link stays stable across shares;
+        // mint one lazily on first request.
+        val token = trip.inviteToken ?: run {
+            val fresh = newInviteToken()
+            tripRepository.save(trip.copy(inviteToken = fresh))
+            fresh
+        }
+        return TripInviteResponse(token = token)
+    }
+
+    override fun getInvitePreview(token: String): TripInvitePreview {
+        val trip = tripRepository.findByInviteToken(token)
+            ?: throw NotFoundException("Invite not found")
+
+        val currentUserId = userService.getOrCreateUser().id
+        return TripInvitePreview(
+            tripId = trip.id!!,
+            destination = trip.destination,
+            status = trip.status,
+            participantCount = trip.participants.size,
+            alreadyParticipant = trip.participants.any { it.id == currentUserId },
+            name = trip.name,
+            startTime = trip.startTime,
+            endTime = trip.endTime,
+            invitedByName = trip.createdBy?.let { displayName(it) },
+        )
+    }
+
+    @Transactional
+    override fun joinViaInvite(token: String): Trip {
+        val trip = tripRepository.findByInviteToken(token)
+            ?: throw NotFoundException("Invite not found")
+
+        if (trip.status == TripStatus.CANCELLED) {
+            throw ConflictException("This trip has been cancelled and can no longer be joined.")
+        }
+
+        val currentUserId = userService.getOrCreateUser().id
+            ?: throw NotFoundException("Current user not found")
+
+        // Idempotent: re-opening the link as an existing participant is a no-op.
+        if (trip.participants.any { it.id == currentUserId }) {
+            return tripMapper.toDto(trip)
+        }
+
+        val user = userRepository.findById(currentUserId)
+            .orElseThrow { NotFoundException("User $currentUserId not found") }
+        trip.participants.add(user)
+        val saved = tripRepository.save(trip)
+        notificationService.notifyParticipantJoined(saved, user)
+        return tripMapper.toDto(saved)
+    }
+
+    private fun newInviteToken(): String {
+        val bytes = ByteArray(24)
+        SECURE_RANDOM.nextBytes(bytes)
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+    }
+
+    private fun displayName(user: UserEntity): String =
+        listOf(user.firstName, user.lastName)
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+            .ifBlank { user.username }
+
     /**
      * Reject removing a participant who still has financial ties to the trip
      * (an expense they created, paid for, or owe a share of; a settlement
@@ -195,6 +274,7 @@ class TripService(
 
     private companion object {
         const val BALANCE_TOLERANCE = 0.01
+        val SECURE_RANDOM = SecureRandom()
     }
 
     /**

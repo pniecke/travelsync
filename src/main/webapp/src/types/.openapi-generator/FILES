@@ -18,6 +18,8 @@ models/SignUpRequest.ts
 models/SuggestedSettlement.ts
 models/Trip.ts
 models/TripBalances.ts
+models/TripInvitePreview.ts
+models/TripInviteResponse.ts
 models/TripStatus.ts
 models/UpdateUserRequest.ts
 models/User.ts

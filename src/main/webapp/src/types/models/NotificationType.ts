@@ -20,7 +20,8 @@
 export const NotificationType = {
     ExpenseInvolvingYou: 'EXPENSE_INVOLVING_YOU',
     AddedToTrip: 'ADDED_TO_TRIP',
-    TripStarted: 'TRIP_STARTED'
+    TripStarted: 'TRIP_STARTED',
+    ParticipantJoined: 'PARTICIPANT_JOINED'
 } as const;
 export type NotificationType = typeof NotificationType[keyof typeof NotificationType];
 

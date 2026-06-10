@@ -1,4 +1,4 @@
-import {Trip} from "@/types";
+import {Trip, TripInvitePreview, TripInviteResponse} from "@/types";
 import apiClient, {ensureCsrf} from "@/services/apiClient";
 import {AxiosInstance} from "axios";
 
@@ -27,4 +27,24 @@ export async function updateTrip(trip: Trip): Promise<Trip> {
 export async function deleteTrip(id: string): Promise<void> {
     await ensureCsrf();
     await apiClient.delete(`/trips/${id}`);
+}
+
+export async function createTripInvite(id: string): Promise<TripInviteResponse> {
+    await ensureCsrf();
+    const response = await apiClient.post<TripInviteResponse>(`/trips/${id}/invite`);
+    return response.data;
+}
+
+export async function getTripInvitePreview(
+    token: string,
+    client: AxiosInstance = apiClient,
+): Promise<TripInvitePreview> {
+    const response = await client.get<TripInvitePreview>(`/trips/invites/${token}`);
+    return response.data;
+}
+
+export async function joinTripViaInvite(token: string): Promise<Trip> {
+    await ensureCsrf();
+    const response = await apiClient.post<Trip>(`/trips/invites/${token}/join`);
+    return response.data;
 }

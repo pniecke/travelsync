@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, BellRing, Calendar, DollarSign, UserPlus } from "lucide-react";
+import { Bell, BellRing, Calendar, DollarSign, UserCheck, UserPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -15,6 +15,8 @@ function iconFor(type: NotificationType) {
             return <UserPlus className="w-4 h-4 text-blue-400" />;
         case NotificationType.TripStarted:
             return <Calendar className="w-4 h-4 text-amber-400" />;
+        case NotificationType.ParticipantJoined:
+            return <UserCheck className="w-4 h-4 text-blue-400" />;
     }
 }
 

@@ -10,6 +10,8 @@ import com.paullouis.travelsync.model.generated.CreateSettlementRequest
 import com.paullouis.travelsync.model.generated.Settlement
 import com.paullouis.travelsync.model.generated.Trip
 import com.paullouis.travelsync.model.generated.TripBalances
+import com.paullouis.travelsync.model.generated.TripInvitePreview
+import com.paullouis.travelsync.model.generated.TripInviteResponse
 import io.swagger.v3.oas.annotations.*
 import io.swagger.v3.oas.annotations.enums.*
 import io.swagger.v3.oas.annotations.media.*
@@ -82,6 +84,31 @@ interface TripApi {
             consumes = ["application/json"]
     )
     fun createTrip(@Parameter(description = "", required = true) @Valid @RequestBody trip: kotlin.collections.List<Trip>): ResponseEntity<List<Trip>> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Trip",],
+        summary = "Create or fetch the shareable invite link for a trip",
+        operationId = "createTripInvite",
+        description = """Returns the trip's reusable invite token, minting one on first call.
+Anyone who opens the resulting link (and is or becomes a signed-in
+user) can join the trip. Only existing participants may fetch it.
+""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Invite token", content = [Content(schema = Schema(implementation = TripInviteResponse::class))]),
+            ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+            ApiResponse(responseCode = "403", description = "Forbidden - Not a participant"),
+            ApiResponse(responseCode = "404", description = "Trip not found")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.POST],
+            value = ["/trips/{id}/invite"],
+            produces = ["application/json"]
+    )
+    fun createTripInvite(@Parameter(description = "Unique identifier of the trip", required = true) @PathVariable("id") id: java.util.UUID): ResponseEntity<TripInviteResponse> {
         return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     }
 
@@ -175,6 +202,30 @@ instead.
 
     @Operation(
         tags = ["Trip",],
+        summary = "Preview a trip invite",
+        operationId = "getTripInvitePreview",
+        description = """Returns a lightweight summary of the trip an invite points at, for the
+join landing page. Requires authentication so non-users are routed
+through sign-up first.
+""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Invite preview", content = [Content(schema = Schema(implementation = TripInvitePreview::class))]),
+            ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+            ApiResponse(responseCode = "404", description = "Invite not found")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.GET],
+            value = ["/trips/invites/{token}"],
+            produces = ["application/json"]
+    )
+    fun getTripInvitePreview(@Parameter(description = "Opaque invite token", required = true) @PathVariable("token") token: kotlin.String): ResponseEntity<TripInvitePreview> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Trip",],
         summary = "List all settlements for a trip",
         operationId = "getTripSettlements",
         description = """""",
@@ -209,6 +260,30 @@ instead.
             produces = ["application/json"]
     )
     fun getTripsByLoggedInUser(): ResponseEntity<List<Trip>> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Trip",],
+        summary = "Join a trip via an invite link",
+        operationId = "joinTripViaInvite",
+        description = """Adds the current user to the trip the token points at. Idempotent for
+users who are already participants. Rejected for cancelled trips.
+""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "Joined trip", content = [Content(schema = Schema(implementation = Trip::class))]),
+            ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+            ApiResponse(responseCode = "404", description = "Invite not found"),
+            ApiResponse(responseCode = "409", description = "Trip cannot be joined (e.g. cancelled)", content = [Content(schema = Schema(implementation = ApiError::class))])
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.POST],
+            value = ["/trips/invites/{token}/join"],
+            produces = ["application/json"]
+    )
+    fun joinTripViaInvite(@Parameter(description = "Opaque invite token", required = true) @PathVariable("token") token: kotlin.String): ResponseEntity<Trip> {
         return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
     }
 

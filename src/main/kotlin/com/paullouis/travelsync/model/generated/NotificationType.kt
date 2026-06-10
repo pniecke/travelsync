@@ -17,13 +17,14 @@ import io.swagger.v3.oas.annotations.media.Schema
 
 /**
 * Kind of in-app notification.
-* Values: EXPENSE_INVOLVING_YOU,ADDED_TO_TRIP,TRIP_STARTED
+* Values: EXPENSE_INVOLVING_YOU,ADDED_TO_TRIP,TRIP_STARTED,PARTICIPANT_JOINED
 */
 enum class NotificationType(@get:JsonValue val value: kotlin.String) {
 
     EXPENSE_INVOLVING_YOU("EXPENSE_INVOLVING_YOU"),
     ADDED_TO_TRIP("ADDED_TO_TRIP"),
-    TRIP_STARTED("TRIP_STARTED");
+    TRIP_STARTED("TRIP_STARTED"),
+    PARTICIPANT_JOINED("PARTICIPANT_JOINED");
 
     companion object {
         @JvmStatic

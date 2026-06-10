@@ -20,6 +20,7 @@ enum class NotificationType {
     EXPENSE_INVOLVING_YOU,
     ADDED_TO_TRIP,
     TRIP_STARTED,
+    PARTICIPANT_JOINED,
 }
 
 @Entity

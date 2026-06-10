@@ -19,6 +19,8 @@ export * from './SignUpRequest';
 export * from './SuggestedSettlement';
 export * from './Trip';
 export * from './TripBalances';
+export * from './TripInvitePreview';
+export * from './TripInviteResponse';
 export * from './TripStatus';
 export * from './UpdateUserRequest';
 export * from './User';

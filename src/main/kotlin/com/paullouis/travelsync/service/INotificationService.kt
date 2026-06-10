@@ -20,4 +20,6 @@ interface INotificationService {
     fun notifyAddedToTrip(trip: TripEntity, newParticipants: Collection<UserEntity>, actor: UserEntity)
 
     fun notifyTripStarted(trip: TripEntity)
+
+    fun notifyParticipantJoined(trip: TripEntity, joiner: UserEntity)
 }

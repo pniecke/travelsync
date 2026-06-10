@@ -14,6 +14,7 @@ import {
     MapPin,
     Pencil,
     RotateCcw,
+    Share2,
     Trash2,
     XCircle,
 } from "lucide-react";
@@ -30,6 +31,7 @@ import TripOverviewTab from "@/components/trip/TripOverviewTab";
 import TripExpensesTab from "@/components/trip/TripExpensesTab";
 import TripBalancesTab from "@/components/trip/TripBalancesTab";
 import TripDialog from "@/components/TripDialog";
+import ShareTripDialog from "@/components/trip/ShareTripDialog";
 
 type TabKey = "overview" | "expenses" | "balances";
 
@@ -109,6 +111,7 @@ export default function TripDetailPage({
     const router = useRouter();
     const [trip, setTrip] = useState<Trip>(initialTrip);
     const [editOpen, setEditOpen] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -246,6 +249,14 @@ export default function TripDetailPage({
                     <Pencil className="w-4 h-4 mr-2"/>
                     Edit
                 </button>
+                <button
+                    onClick={() => setShareOpen(true)}
+                    disabled={busy}
+                    className="flex items-center px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-100 rounded-lg text-sm transition-colors"
+                >
+                    <Share2 className="w-4 h-4 mr-2"/>
+                    Share
+                </button>
                 {canComplete && (
                     <button
                         onClick={() => updateStatus(TripStatus.Completed)}
@@ -354,6 +365,12 @@ export default function TripDetailPage({
                 mode="edit"
                 existingTrip={trip}
                 onSavedAction={refreshTrip}
+            />
+
+            <ShareTripDialog
+                isOpen={shareOpen}
+                onCloseAction={() => setShareOpen(false)}
+                trip={trip}
             />
         </div>
     );

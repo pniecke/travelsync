@@ -146,6 +146,35 @@ class NotificationService(
         )
     }
 
+    @Transactional
+    override fun notifyParticipantJoined(trip: TripEntity, joiner: UserEntity) {
+        // Tell the people already on the trip that someone joined via the
+        // invite link — never the joiner themselves (they just clicked Join).
+        val recipients = trip.participants
+            .filter { it.id != null && it.id != joiner.id }
+            .distinctBy { it.id }
+
+        if (recipients.isEmpty()) return
+
+        val joinerName = displayName(joiner)
+        val tripName = trip.name ?: trip.destination
+        val title = "New trip member"
+        val message = "$joinerName joined $tripName"
+
+        notificationRepository.saveAll(
+            recipients.map { recipient ->
+                NotificationEntity(
+                    recipient = recipient,
+                    type = NotificationType.PARTICIPANT_JOINED,
+                    tripId = trip.id,
+                    actorUserId = joiner.id,
+                    title = title,
+                    message = message,
+                )
+            }
+        )
+    }
+
     private fun currentUserEntity(): UserEntity =
         userMapper.toEntity(userService.getOrCreateUser())
 

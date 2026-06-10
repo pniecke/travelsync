@@ -7,6 +7,7 @@ import {useRouter} from "next/router";
 import apiClient, {ensureCsrf} from "@/services/apiClient";
 import {SignUpRequest} from "@/types/models/SignUpRequest";
 import {AxiosError} from "axios";
+import {safeReturnUrl} from "@/utils/returnUrl";
 
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]+$/;
 
@@ -22,12 +23,18 @@ interface SignupFormData {
 export const Signup: React.FC = () => {
     const {user, loading} = useAuth();
     const router = useRouter();
+    const returnUrl = safeReturnUrl(
+        Array.isArray(router.query.returnUrl) ? router.query.returnUrl[0] : router.query.returnUrl
+    );
+    const loginHref = returnUrl !== '/dashboard'
+        ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
+        : '/login';
 
     useEffect(() => {
         if (!loading && user) {
-            router.replace('/dashboard')
+            router.replace(returnUrl)
         }
-    }, [user, loading, router]);
+    }, [user, loading, router, returnUrl]);
 
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState<SignupFormData>({
@@ -118,7 +125,9 @@ export const Signup: React.FC = () => {
         try {
             await ensureCsrf();
             await apiClient.post('/auth/signup', signUpRequest);
-            router.replace('/login?signupSuccess=1');
+            router.replace(returnUrl !== '/dashboard'
+                ? `/login?signupSuccess=1&returnUrl=${encodeURIComponent(returnUrl)}`
+                : '/login?signupSuccess=1');
         } catch (err: unknown) {
             if (err instanceof AxiosError) {
                 const errorMessage = err?.response?.data?.error;
@@ -393,7 +402,7 @@ export const Signup: React.FC = () => {
                     <div className="mt-6 text-center">
                         <p className="text-sm text-slate-600">
                             Already have an account?{" "}
-                            <Link href="/login" className="text-sky-500 hover:text-sky-600 font-medium">
+                            <Link href={loginHref} className="text-sky-500 hover:text-sky-600 font-medium">
                                 Sign in
                             </Link>
                         </p>

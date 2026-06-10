@@ -304,6 +304,104 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
+  /trips/{id}/invite:
+    post:
+      tags: [ Trip ]
+      operationId: createTripInvite
+      summary: Create or fetch the shareable invite link for a trip
+      description: |
+        Returns the trip's reusable invite token, minting one on first call.
+        Anyone who opens the resulting link (and is or becomes a signed-in
+        user) can join the trip. Only existing participants may fetch it.
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the trip
+      responses:
+        '200':
+          description: Invite token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripInviteResponse'
+        '401':
+          description: Unauthorized - Authentication required
+        '403':
+          description: Forbidden - Not a participant
+        '404':
+          description: Trip not found
+
+  /trips/invites/{token}:
+    get:
+      tags: [ Trip ]
+      operationId: getTripInvitePreview
+      summary: Preview a trip invite
+      description: |
+        Returns a lightweight summary of the trip an invite points at, for the
+        join landing page. Requires authentication so non-users are routed
+        through sign-up first.
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Opaque invite token
+      responses:
+        '200':
+          description: Invite preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripInvitePreview'
+        '401':
+          description: Unauthorized - Authentication required
+        '404':
+          description: Invite not found
+
+  /trips/invites/{token}/join:
+    post:
+      tags: [ Trip ]
+      operationId: joinTripViaInvite
+      summary: Join a trip via an invite link
+      description: |
+        Adds the current user to the trip the token points at. Idempotent for
+        users who are already participants. Rejected for cancelled trips.
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Opaque invite token
+      responses:
+        '200':
+          description: Joined trip
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '401':
+          description: Unauthorized - Authentication required
+        '404':
+          description: Invite not found
+        '409':
+          description: Trip cannot be joined (e.g. cancelled)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
   # --- Expense ---------------------------------------------------------------
   /expenses:
     get:
@@ -1014,6 +1112,51 @@ components:
           items:
             $ref: '#/components/schemas/SuggestedSettlement'
 
+    TripInviteResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: Opaque, reusable invite token. Append to the frontend join path to build the shareable link.
+          example: "k7Qx2f9aZ1pR8sT4uV6wY0bC3dE5gH"
+
+    TripInvitePreview:
+      type: object
+      required:
+        - tripId
+        - destination
+        - status
+        - participantCount
+        - alreadyParticipant
+      properties:
+        tripId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Name of the trip, if set
+        destination:
+          type: string
+        startTime:
+          type: string
+          format: local-date-time
+        endTime:
+          type: string
+          format: local-date-time
+        status:
+          $ref: '#/components/schemas/TripStatus'
+        invitedByName:
+          type: string
+          description: Display name of the trip creator, if known
+        participantCount:
+          type: integer
+          description: Number of people currently on the trip
+        alreadyParticipant:
+          type: boolean
+          description: True if the current user is already on this trip
+
     User:
       type: object
       required:
@@ -1106,7 +1249,7 @@ components:
 
     NotificationType:
       type: string
-      enum: [ EXPENSE_INVOLVING_YOU, ADDED_TO_TRIP, TRIP_STARTED ]
+      enum: [ EXPENSE_INVOLVING_YOU, ADDED_TO_TRIP, TRIP_STARTED, PARTICIPANT_JOINED ]
       description: Kind of in-app notification.
       example: "EXPENSE_INVOLVING_YOU"
 

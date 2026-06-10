@@ -9,6 +9,7 @@ import {useRouter, useSearchParams} from "next/navigation";
 import apiClient, {ensureCsrf} from "@/services/apiClient";
 import {SignInRequest} from "@/types/models/SignInRequest";
 import {AxiosError} from "axios";
+import {safeReturnUrl, stashReturnUrl} from "@/utils/returnUrl";
 
 interface LoginFormData {
     identifier: string;
@@ -20,12 +21,16 @@ export const Login: React.FC = () => {
     const {user, loading, refetch} = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const returnUrl = safeReturnUrl(searchParams?.get('returnUrl'));
+    const signupHref = returnUrl !== '/dashboard'
+        ? `/signup?returnUrl=${encodeURIComponent(returnUrl)}`
+        : '/signup';
 
     useEffect(() => {
         if (!loading && user) {
-            router.replace('/dashboard')
+            router.replace(returnUrl)
         }
-    }, [user, loading, router]);
+    }, [user, loading, router, returnUrl]);
 
     const [formData, setFormDate] = useState<LoginFormData>({
         identifier: "",
@@ -40,9 +45,12 @@ export const Login: React.FC = () => {
     useEffect(() => {
         if (searchParams?.get('signupSuccess') === '1') {
             setSuccessMsg("Account created. Please sign in to continue.");
-            router.replace('/login');
+            // Clean the URL but keep returnUrl so the post-login redirect still works.
+            router.replace(returnUrl !== '/dashboard'
+                ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
+                : '/login');
         }
-    }, [searchParams, router]);
+    }, [searchParams, router, returnUrl]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,12 +65,12 @@ export const Login: React.FC = () => {
 
         try {
             await ensureCsrf();
-            const response = await apiClient.post('/auth/signin', signInRequest);
+            await apiClient.post('/auth/signin', signInRequest);
 
             // Refetch user data to update AuthProvider
             await refetch();
 
-            router.replace('/dashboard');
+            router.replace(returnUrl);
         } catch (err: unknown) {
             if (err instanceof AxiosError) {
                 const errorMessage = err?.response?.data?.error;
@@ -144,7 +152,12 @@ export const Login: React.FC = () => {
                         <button
                             type="button"
                             className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-slate-800"
-                            onClick={() => window.location.href = "/api/oauth2/authorization/google"}
+                            onClick={() => {
+                                // OAuth round-trips through Google and lands back on "/",
+                                // so a query param can't survive — stash it instead.
+                                stashReturnUrl(returnUrl);
+                                window.location.href = "/api/oauth2/authorization/google";
+                            }}
                         >
                             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                                 <path
@@ -261,7 +274,7 @@ export const Login: React.FC = () => {
                     <div className="mt-6 text-center">
                         <p className="text-sm text-slate-600">
                             Don&#39;t have an account?{" "}
-                            <Link href="/signup" className="text-sky-500 hover:text-sky-600 font-medium">
+                            <Link href={signupHref} className="text-sky-500 hover:text-sky-600 font-medium">
                                 Sign up
                             </Link>
                         </p>

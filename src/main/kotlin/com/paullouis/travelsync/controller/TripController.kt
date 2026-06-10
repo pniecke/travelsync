@@ -4,6 +4,8 @@ import com.paullouis.travelsync.model.generated.CreateSettlementRequest
 import com.paullouis.travelsync.model.generated.Settlement
 import com.paullouis.travelsync.model.generated.Trip
 import com.paullouis.travelsync.model.generated.TripBalances
+import com.paullouis.travelsync.model.generated.TripInvitePreview
+import com.paullouis.travelsync.model.generated.TripInviteResponse
 import com.paullouis.travelsync.service.IBalanceService
 import com.paullouis.travelsync.service.ISettlementService
 import com.paullouis.travelsync.service.ITripService
@@ -46,6 +48,15 @@ class TripController(
     ): ResponseEntity<Trip> {
         return ResponseEntity(tripService.updateTrip(id, trip), HttpStatus.OK)
     }
+
+    override fun createTripInvite(@PathVariable id: UUID): ResponseEntity<TripInviteResponse> =
+        ResponseEntity.ok(tripService.createInvite(id))
+
+    override fun getTripInvitePreview(@PathVariable token: String): ResponseEntity<TripInvitePreview> =
+        ResponseEntity.ok(tripService.getInvitePreview(token))
+
+    override fun joinTripViaInvite(@PathVariable token: String): ResponseEntity<Trip> =
+        ResponseEntity.ok(tripService.joinViaInvite(token))
 
     override fun getTripBalances(@PathVariable id: UUID): ResponseEntity<TripBalances> =
         ResponseEntity.ok(balanceService.balancesFor(id))

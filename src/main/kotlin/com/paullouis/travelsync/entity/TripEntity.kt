@@ -38,6 +38,9 @@ data class TripEntity(
     @JoinColumn(name = "created_by", nullable = true)
     val createdBy: UserEntity? = null,
 
+    @Column(name = "invite_token", unique = true, nullable = true)
+    val inviteToken: String? = null,
+
     @Column(updatable = false)
     @CreationTimestamp
     val createdAt: LocalDateTime? = null,

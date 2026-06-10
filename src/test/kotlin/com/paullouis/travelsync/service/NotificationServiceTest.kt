@@ -232,6 +232,34 @@ class NotificationServiceTest {
         }
     }
 
+    @Test
+    fun `notifyParticipantJoined notifies existing members but never the joiner`() {
+        val trip = tripEntity(name = "Italy", participants = listOf(alice, bob, carol))
+
+        // Bob joined via the invite link; alice and carol should hear about it.
+        service.notifyParticipantJoined(trip, joiner = bob)
+
+        @Suppress("UNCHECKED_CAST")
+        val captor = ArgumentCaptor.forClass(Iterable::class.java) as ArgumentCaptor<Iterable<NotificationEntity>>
+        verify(notificationRepository).saveAll(captor.capture())
+        val saved = captor.value.toList()
+        assertEquals(setOf(aliceId, carolId), saved.map { it.recipient.id }.toSet())
+        saved.forEach {
+            assertEquals(NotificationType.PARTICIPANT_JOINED, it.type)
+            assertEquals(tripId, it.tripId)
+            assertEquals(bobId, it.actorUserId)
+        }
+    }
+
+    @Test
+    fun `notifyParticipantJoined no-op when the joiner is the only participant`() {
+        val trip = tripEntity(name = "Italy", participants = listOf(bob))
+
+        service.notifyParticipantJoined(trip, joiner = bob)
+
+        verify(notificationRepository, never()).saveAll(any<Iterable<NotificationEntity>>())
+    }
+
     // ---- helpers ---------------------------------------------------------
 
     private fun userEntity(id: UUID, username: String, first: String, last: String) = UserEntity(

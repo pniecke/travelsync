@@ -28,4 +28,6 @@ interface TripRepository : CrudRepository<TripEntity, UUID> {
         status: TripStatus,
         endTime: LocalDateTime,
     ): List<TripEntity>
+
+    fun findByInviteToken(inviteToken: String): TripEntity?
 }

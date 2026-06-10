@@ -98,6 +98,27 @@ class TripFinancialQueriesIntegrationTest {
     }
 
     @Test
+    fun `findByInviteToken resolves the trip and returns null for an unknown token`() {
+        val alice = persistUser("alice")
+        val trip = em.persist(
+            TripEntity(
+                name = "Trip",
+                participants = mutableListOf(alice),
+                startTime = LocalDateTime.of(2026, 6, 1, 9, 0),
+                destination = "Sardinia",
+                status = TripStatus.PLANNED,
+                createdBy = alice,
+                inviteToken = "share-token-123",
+            )
+        )
+        em.flush()
+        em.clear()
+
+        assertEquals(trip.id, tripRepository.findByInviteToken("share-token-123")?.id)
+        assertEquals(null, tripRepository.findByInviteToken("does-not-exist"))
+    }
+
+    @Test
     fun `findAllByTrip returns settlements scoped to the trip`() {
         val alice = persistUser("alice")
         val bob = persistUser("bob")
