@@ -1,16 +1,21 @@
 'use client'
 
+import {AxiosError} from "axios";
 import {Check, Search, UserPlus, X} from "lucide-react";
 import {useEffect, useState} from "react";
-import {Trip, TripStatus, User} from "@/types";
-import {createTrip} from "@/services/tripService";
+import {ApiError, Trip, TripStatus, User} from "@/types";
+import {createTrip, updateTrip} from "@/services/tripService";
+
+type TripDialogMode = "create" | "edit";
 
 interface TripDialogProps {
     isOpen: boolean;
     onCloseAction: () => void;
     user: User;
     allUsers: User[];
-    onTripCreatedAction: () => Promise<void>;
+    onSavedAction: () => Promise<void>;
+    mode?: TripDialogMode;
+    existingTrip?: Trip;
 }
 
 interface UserSearchResult extends User {
@@ -29,30 +34,58 @@ function emptyForm(user: User): Trip {
     };
 }
 
+// datetime-local inputs need yyyy-MM-ddTHH:mm; the server's LocalDateTime
+// strings can include seconds, so slice them off.
+function toDateTimeLocalValue(value?: string): string {
+    return value ? value.slice(0, 16) : '';
+}
+
+function formFromTrip(trip: Trip): Trip {
+    return {
+        ...trip,
+        name: trip.name ?? '',
+        description: trip.description ?? '',
+        startTime: toDateTimeLocalValue(trip.startTime),
+        endTime: toDateTimeLocalValue(trip.endTime),
+    };
+}
+
 export default function TripDialog({
                                        isOpen,
                                        onCloseAction,
                                        user,
                                        allUsers,
-                                       onTripCreatedAction,
+                                       onSavedAction,
+                                       mode = "create",
+                                       existingTrip,
                                    }: TripDialogProps) {
-    const [form, setForm] = useState<Trip>(() => emptyForm(user));
-    const [selectedParticipants, setSelectedParticipants] = useState<User[]>([user]);
+    const isEdit = mode === "edit" && !!existingTrip;
+    const [form, setForm] = useState<Trip>(() =>
+        isEdit ? formFromTrip(existingTrip!) : emptyForm(user)
+    );
+    const [selectedParticipants, setSelectedParticipants] = useState<User[]>(() =>
+        isEdit ? (existingTrip!.participants ?? []) : [user]
+    );
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
-    const [isCreating, setIsCreating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Reset form whenever the dialog reopens so a previous attempt doesn't
-    // leak in.
+    // leak in (or so a freshly-fetched trip is shown on edit).
     useEffect(() => {
         if (isOpen) {
-            setForm(emptyForm(user));
-            setSelectedParticipants([user]);
+            if (isEdit && existingTrip) {
+                setForm(formFromTrip(existingTrip));
+                setSelectedParticipants(existingTrip.participants ?? []);
+            } else {
+                setForm(emptyForm(user));
+                setSelectedParticipants([user]);
+            }
             setSearchQuery('');
             setError(null);
         }
-    }, [isOpen, user]);
+    }, [isOpen, isEdit, existingTrip, user]);
 
     useEffect(() => {
         if (searchQuery.trim() === '') {
@@ -79,7 +112,7 @@ export default function TripDialog({
     };
 
     const submit = async () => {
-        setIsCreating(true);
+        setIsSaving(true);
         setError(null);
         try {
             const trimmedName = form.name?.trim();
@@ -91,23 +124,38 @@ export default function TripDialog({
                 id: p.id,
                 username: p.username,
             } as User));
-            const payload: Trip[] = [{
+            const basePayload: Trip = {
                 participants: participantRefs,
                 ...(trimmedName ? {name: trimmedName} : {}),
                 destination: form.destination,
                 startTime: form.startTime,
                 ...(form.endTime ? {endTime: form.endTime} : {}),
                 ...(trimmedDescription ? {description: trimmedDescription} : {}),
-                status: TripStatus.Planned,
-            }];
-            await createTrip(payload);
-            await onTripCreatedAction();
+                status: isEdit ? (form.status ?? TripStatus.Planned) : TripStatus.Planned,
+            };
+            if (isEdit) {
+                await updateTrip({...basePayload, id: existingTrip!.id});
+            } else {
+                await createTrip([basePayload]);
+            }
+            await onSavedAction();
             onCloseAction();
         } catch (err) {
-            setError("Failed to create trip. Please try again.");
-            console.error("Error creating trip:", err);
+            const fallback = isEdit ? "Failed to update trip." : "Failed to create trip.";
+            const axiosErr = err as AxiosError<ApiError>;
+            const status = axiosErr?.response?.status;
+            const apiMessage = axiosErr?.response?.data?.error;
+            setError(apiMessage ? apiMessage : `${fallback} Please try again.`);
+            // 4xx with a server message is expected validation feedback — log
+            // it as a warning so the Next.js dev overlay stays quiet.
+            const label = isEdit ? "Error updating trip:" : "Error creating trip:";
+            if (status && status >= 400 && status < 500) {
+                console.warn(label, axiosErr.response?.data ?? err);
+            } else {
+                console.error(label, err);
+            }
         } finally {
-            setIsCreating(false);
+            setIsSaving(false);
         }
     };
 
@@ -118,7 +166,9 @@ export default function TripDialog({
             <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 w-full max-w-md">
                 <div className="p-6">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-gray-100">Create New Trip</h3>
+                        <h3 className="text-xl font-bold text-gray-100">
+                            {isEdit ? "Edit Trip" : "Create New Trip"}
+                        </h3>
                         <button
                             onClick={onCloseAction}
                             className="text-gray-400 hover:text-gray-300"
@@ -278,12 +328,14 @@ export default function TripDialog({
                         </button>
                         <button
                             onClick={submit}
-                            disabled={isCreating || !form.destination || !form.startTime}
+                            disabled={isSaving || !form.destination || !form.startTime}
                             className={`px-4 py-2 rounded-lg text-white ${
-                                isCreating ? 'bg-blue-700' : 'bg-blue-600 hover:bg-blue-500'
+                                isSaving ? 'bg-blue-700' : 'bg-blue-600 hover:bg-blue-500'
                             } transition-colors disabled:bg-gray-600 disabled:text-gray-400`}
                         >
-                            {isCreating ? 'Creating...' : 'Create Trip'}
+                            {isSaving
+                                ? (isEdit ? 'Saving…' : 'Creating…')
+                                : (isEdit ? 'Save changes' : 'Create Trip')}
                         </button>
                     </div>
 

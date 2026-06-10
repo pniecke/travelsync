@@ -34,6 +34,10 @@ data class TripEntity(
     @OneToMany(mappedBy = "trip")
     val expenses: MutableList<ExpenseEntity>? = null,
 
+    @ManyToOne
+    @JoinColumn(name = "created_by", nullable = true)
+    val createdBy: UserEntity? = null,
+
     @Column(updatable = false)
     @CreationTimestamp
     val createdAt: LocalDateTime? = null,

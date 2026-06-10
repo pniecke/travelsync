@@ -266,6 +266,43 @@ paths:
           description: Bad Request - Invalid trip data
         '401':
           description: Unauthorized - Authentication required
+        '409':
+          description: Conflict (e.g. removing a participant with expenses)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags: [ Trip ]
+      operationId: deleteTrip
+      summary: Delete a trip
+      description: |
+        Hard-deletes a trip. Only the trip's creator may delete, and only when
+        the trip has no recorded expenses or settlements — otherwise cancel it
+        instead.
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the trip
+      responses:
+        '204':
+          description: Deleted
+        '403':
+          description: Forbidden - Not the trip's creator
+        '404':
+          description: Trip not found
+        '409':
+          description: Trip has expenses or settlements; cancel instead
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
 
   # --- Expense ---------------------------------------------------------------
   /expenses:
@@ -754,6 +791,11 @@ components:
           example: "A relaxing summer vacation in Sardinia."
         status:
           $ref: '#/components/schemas/TripStatus'
+        createdById:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Id of the user who created the trip; null for trips created before this field existed
         expenses:
           type: array
           maxItems: 1000

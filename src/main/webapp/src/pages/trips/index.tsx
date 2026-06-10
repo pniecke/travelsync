@@ -389,7 +389,7 @@ export default function TripsListPage({user, trips: initialTrips, allUsers}: Tri
                 onCloseAction={() => setDialogOpen(false)}
                 user={user}
                 allUsers={allUsers}
-                onTripCreatedAction={refreshTrips}
+                onSavedAction={refreshTrips}
             />
         </div>
     );

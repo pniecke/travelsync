@@ -19,6 +19,12 @@ export async function createTrip(trips: Trip[]): Promise<Trip[]> {
 }
 
 export async function updateTrip(trip: Trip): Promise<Trip> {
+    await ensureCsrf();
     const response = await apiClient.put(`/trips/${trip.id}`, trip);
     return response.data;
+}
+
+export async function deleteTrip(id: string): Promise<void> {
+    await ensureCsrf();
+    await apiClient.delete(`/trips/${id}`);
 }

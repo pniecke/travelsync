@@ -2,10 +2,14 @@ package com.paullouis.travelsync.service
 
 import com.paullouis.travelsync.entity.TripEntity
 import com.paullouis.travelsync.entity.UserEntity
+import com.paullouis.travelsync.model.generated.Currency
 import com.paullouis.travelsync.model.generated.Trip
 import com.paullouis.travelsync.model.generated.User
+import com.paullouis.travelsync.repository.ExpenseRepository
+import com.paullouis.travelsync.repository.SettlementRepository
 import com.paullouis.travelsync.repository.TripRepository
 import com.paullouis.travelsync.repository.UserRepository
+import com.paullouis.travelsync.service.exception.ConflictException
 import com.paullouis.travelsync.service.exception.ForbiddenException
 import com.paullouis.travelsync.service.exception.NotFoundException
 import com.paullouis.travelsync.utils.mapper.TripMapper
@@ -18,6 +22,8 @@ import java.util.*
 class TripService(
     private val tripRepository: TripRepository,
     private val userRepository: UserRepository,
+    private val expenseRepository: ExpenseRepository,
+    private val settlementRepository: SettlementRepository,
     private val tripMapper: TripMapper,
     private val userMapper: UserMapper,
     private val userService: UserService,
@@ -65,6 +71,7 @@ class TripService(
                 destination = trip.destination,
                 description = trip.description,
                 status = trip.status,
+                createdBy = actor,
             )
         }
         val savedTrips = tripRepository.saveAll(tripEntities).toList()
@@ -87,8 +94,17 @@ class TripService(
         }
 
         val participantEntities = resolveParticipants(trip.participants)
+        val newParticipantIds = participantEntities.mapNotNull { it.id }.toSet()
         val previousParticipantIds = existingTripEntity.participants.mapNotNull { it.id }.toSet()
         val addedParticipants = participantEntities.filter { it.id != null && it.id !in previousParticipantIds }
+        val removedParticipants = existingTripEntity.participants.filter { it.id != null && it.id !in newParticipantIds }
+
+        if (removedParticipants.isNotEmpty()) {
+            if (participantEntities.isEmpty()) {
+                throw ConflictException("A trip must keep at least one participant")
+            }
+            guardParticipantRemoval(existingTripEntity, removedParticipants)
+        }
 
         var updatedTrip = existingTripEntity.copy(
             name = trip.name,
@@ -106,6 +122,79 @@ class TripService(
             notificationService.notifyAddedToTrip(updatedTrip, addedParticipants, actor)
         }
         return tripMapper.toDto(updatedTrip)
+    }
+
+    @Transactional
+    override fun deleteTrip(id: UUID) {
+        val trip: TripEntity = tripRepository.findById(id)
+            .orElseThrow { NotFoundException("Trip $id not found") }
+
+        // Creator-only — falls back to denying when createdBy is unknown
+        // (legacy seed data). Users on such trips can still cancel via PUT.
+        val currentUserId = userService.getOrCreateUser().id
+        if (trip.createdBy?.id != currentUserId) {
+            throw ForbiddenException("Only the trip creator can delete this trip")
+        }
+
+        val expenseCount = expenseRepository.findAllByTripWithShares(trip).size
+        val settlementCount = settlementRepository.findAllByTrip(trip).size
+        if (expenseCount > 0 || settlementCount > 0) {
+            throw ConflictException(
+                "Trip has $expenseCount expense(s) and $settlementCount settlement(s); cancel the trip instead."
+            )
+        }
+
+        tripRepository.delete(trip)
+    }
+
+    /**
+     * Reject removing a participant who still has financial ties to the trip
+     * (an expense they created, paid for, or owe a share of; a settlement
+     * they sent or received). Forces the leaver to settle up first, matching
+     * Splitwise's behaviour.
+     */
+    private fun guardParticipantRemoval(trip: TripEntity, removed: List<UserEntity>) {
+        val removedIds = removed.mapNotNull { it.id }.toSet()
+        val net: MutableMap<Pair<UUID, Currency>, Double> = mutableMapOf()
+
+        expenseRepository.findAllByTripWithShares(trip).forEach { e ->
+            val payerId = e.paidBy?.id
+            if (payerId != null && payerId in removedIds) {
+                net.merge(payerId to e.currency, e.amount) { a, b -> a + b }
+            }
+            e.shares.forEach { share ->
+                val uid = share.user.id
+                if (uid != null && uid in removedIds) {
+                    net.merge(uid to e.currency, -share.amount) { a, b -> a + b }
+                }
+            }
+        }
+        settlementRepository.findAllByTrip(trip).forEach { s ->
+            val fromId = s.fromUser.id
+            if (fromId != null && fromId in removedIds) {
+                net.merge(fromId to s.currency, s.amount) { a, b -> a + b }
+            }
+            val toId = s.toUser.id
+            if (toId != null && toId in removedIds) {
+                net.merge(toId to s.currency, -s.amount) { a, b -> a + b }
+            }
+        }
+
+        val blockerIds = net
+            .filterValues { kotlin.math.abs(it) >= BALANCE_TOLERANCE }
+            .keys
+            .map { it.first }
+            .toSet()
+        if (blockerIds.isNotEmpty()) {
+            val names = removed.filter { it.id in blockerIds }.joinToString(", ") { it.username }
+            throw ConflictException(
+                "Cannot remove $names — they still have an open balance in this trip. Settle up first."
+            )
+        }
+    }
+
+    private companion object {
+        const val BALANCE_TOLERANCE = 0.01
     }
 
     /**

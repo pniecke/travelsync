@@ -31,6 +31,11 @@ class TripController(
         return ResponseEntity.ok(tripService.getByIdForCurrentUser(id))
     }
 
+    override fun deleteTrip(@PathVariable id: UUID): ResponseEntity<Unit> {
+        tripService.deleteTrip(id)
+        return ResponseEntity.noContent().build()
+    }
+
     override fun createTrip(@Valid @RequestBody trip: List<@Valid Trip>): ResponseEntity<List<Trip>> {
         return ResponseEntity(tripService.createTrips(trip), HttpStatus.CREATED)
     }

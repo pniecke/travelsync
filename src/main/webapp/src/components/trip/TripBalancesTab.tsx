@@ -75,10 +75,16 @@ export default function TripBalancesTab({
         }
     };
 
-    const balancesByCurrency = balances.balances.reduce((acc, b) => {
-        (acc[b.currency] ??= []).push(b);
-        return acc;
-    }, {} as Record<Currency, typeof balances.balances>);
+    // Filter out users who are no longer participants — their historical
+    // records (settled-up to zero on leave) stay in expense/settlement lists
+    // but shouldn't pollute the balance roster.
+    const participantIds = new Set((trip.participants ?? []).map(p => p.id));
+    const balancesByCurrency = balances.balances
+        .filter(b => participantIds.has(b.user.id))
+        .reduce((acc, b) => {
+            (acc[b.currency] ??= []).push(b);
+            return acc;
+        }, {} as Record<Currency, typeof balances.balances>);
 
     const suggestionsByCurrency = balances.suggestedSettlements.reduce((acc, s) => {
         (acc[s.currency] ??= []).push(s);

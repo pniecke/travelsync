@@ -21,4 +21,6 @@ interface ITripService {
     fun createTrips(trips: List<Trip>): List<Trip>
 
     fun updateTrip(id: UUID, trip: Trip): Trip
+
+    fun deleteTrip(id: UUID)
 }
