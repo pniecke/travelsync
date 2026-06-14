@@ -2,7 +2,7 @@ import {Expense, Trip, User} from "@/types";
 import React, {useEffect, useState} from "react";
 import {getLoggedInUser} from "@/services/userService";
 import {getMyTrips} from "@/services/tripService";
-import {Calendar, DollarSign, Filter, Plus, Search, X} from "lucide-react";
+import {Calendar, DollarSign, Filter, Paperclip, Plus, Search, X} from "lucide-react";
 import {getExpenses} from "@/services/expenseService";
 import Link from "next/link";
 import ExpenseDialog from "@/components/ExpenseDialog";
@@ -317,14 +317,18 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
                     ) : (
                         <div className="divide-y divide-gray-700">
                             {filteredExpenses.map((expense) => (
-                                <div key={expense.id}
-                                     className="py-4 first:pt-0 last:pb-0 hover:bg-gray-700/50 transition-colors">
+                                <Link key={expense.id}
+                                      href={`/expenses/${expense.id}`}
+                                      className="block py-4 first:pt-0 last:pb-0 -mx-2 px-2 rounded-lg hover:bg-gray-700/50 transition-colors">
                                     <div className="flex items-center justify-between">
-                                        <div className="flex-1">
+                                        <div className="flex-1 min-w-0">
                                             <div className="flex items-center">
                                                 <p className="font-medium text-gray-100">
                                                     {expense.description}
                                                 </p>
+                                                {expense.receiptFilename && (
+                                                    <Paperclip className="ml-2 w-3.5 h-3.5 text-gray-400 shrink-0"/>
+                                                )}
                                                 {expense.tripId && (
                                                     <span
                                                         className="ml-2 px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full">
@@ -351,7 +355,7 @@ export default function Expenses({initialUser, initialTrips, initialExpenses}: E
                                             </p>
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     )}

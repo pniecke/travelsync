@@ -15,9 +15,9 @@ data class ExpenseEntity(
     @GeneratedValue(strategy = GenerationType.UUID)
     val id: UUID? = null,
 
-    val description: String? = null,
+    var description: String? = null,
 
-    val amount: Double,
+    var amount: Double,
 
     @ManyToOne
     @JoinColumn(name = "trip_id")
@@ -28,17 +28,26 @@ data class ExpenseEntity(
     val createdBy: UserEntity,
 
     @Enumerated(EnumType.STRING)
-    val currency: Currency,
+    var currency: Currency,
 
     @ManyToOne
     @JoinColumn(name = "paid_by", nullable = true)
-    val paidBy: UserEntity? = null,
+    var paidBy: UserEntity? = null,
 
     @OneToMany(mappedBy = "expense", cascade = [CascadeType.ALL], orphanRemoval = true)
     val shares: MutableList<ExpenseShareEntity> = mutableListOf(),
 
     @Column(nullable = false)
-    val dateOfExpense: LocalDateTime,
+    var dateOfExpense: LocalDateTime,
+
+    // Receipt attachment. The file bytes live on disk (see ReceiptStorageService);
+    // only the original filename and content type are persisted here so the API
+    // can advertise a receipt exists and serve it with the right Content-Type.
+    @Column(nullable = true)
+    var receiptFilename: String? = null,
+
+    @Column(nullable = true)
+    var receiptContentType: String? = null,
 
     @Column(updatable = false)
     @CreationTimestamp

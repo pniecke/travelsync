@@ -30,6 +30,7 @@ import io.swagger.v3.oas.annotations.media.Schema
  * @param lastModified Last modified date and time of the expense
  * @param paidBy 
  * @param shares Per-participant breakdown of how this expense is split.
+ * @param receiptFilename Original filename of the attached receipt, or null if no receipt has been uploaded. The file itself is served from GET /expenses/{id}/receipt. 
  */
 data class Expense(
 
@@ -71,7 +72,10 @@ data class Expense(
     @field:Valid
     @get:Size(max=100)
     @Schema(example = "null", description = "Per-participant breakdown of how this expense is split.")
-    @get:JsonProperty("shares") val shares: kotlin.collections.List<ExpenseShare>? = null
+    @get:JsonProperty("shares") val shares: kotlin.collections.List<ExpenseShare>? = null,
+
+    @Schema(example = "receipt-hotel.jpg", readOnly = true, description = "Original filename of the attached receipt, or null if no receipt has been uploaded. The file itself is served from GET /expenses/{id}/receipt. ")
+    @get:JsonProperty("receiptFilename") val receiptFilename: kotlin.String? = null
     ) {
 
 }

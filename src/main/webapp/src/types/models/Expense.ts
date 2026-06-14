@@ -101,6 +101,15 @@ export interface Expense {
      * @memberof Expense
      */
     shares?: Array<ExpenseShare>;
+    /**
+     * Original filename of the attached receipt, or null if no receipt
+     * has been uploaded. The file itself is served from
+     * GET /expenses/{id}/receipt.
+     * 
+     * @type {string}
+     * @memberof Expense
+     */
+    readonly receiptFilename?: string;
 }
 
 
@@ -137,6 +146,7 @@ export function ExpenseFromJSONTyped(json: any, ignoreDiscriminator: boolean): E
         'paidBy': json['paidBy'] == null ? undefined : UserFromJSON(json['paidBy']),
         'tripId': json['tripId'],
         'shares': json['shares'] == null ? undefined : ((json['shares'] as Array<any>).map(ExpenseShareFromJSON)),
+        'receiptFilename': json['receiptFilename'] == null ? undefined : json['receiptFilename'],
     };
 }
 
@@ -144,7 +154,7 @@ export function ExpenseToJSON(json: any): Expense {
     return ExpenseToJSONTyped(json, false);
 }
 
-export function ExpenseToJSONTyped(value?: Expense | null, ignoreDiscriminator: boolean = false): any {
+export function ExpenseToJSONTyped(value?: Omit<Expense, 'receiptFilename'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

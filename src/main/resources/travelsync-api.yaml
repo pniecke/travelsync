@@ -495,6 +495,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+    put:
+      tags: [ Expense ]
+      operationId: updateExpense
+      summary: Update an existing expense (replaces its shares)
+      security:
+        - OidcAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Expense'
+      responses:
+        '200':
+          description: The updated expense
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '400':
+          description: Invalid expense data (sum mismatch, non-participant, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: Forbidden
+        '404':
+          description: Expense not found
     delete:
       tags: [ Expense ]
       operationId: deleteExpense
@@ -953,6 +989,14 @@ components:
           description: Per-participant breakdown of how this expense is split.
           items:
             $ref: '#/components/schemas/ExpenseShare'
+        receiptFilename:
+          type: string
+          readOnly: true
+          description: |
+            Original filename of the attached receipt, or null if no receipt
+            has been uploaded. The file itself is served from
+            GET /expenses/{id}/receipt.
+          example: "receipt-hotel.jpg"
 
     ExpenseShareType:
       type: string

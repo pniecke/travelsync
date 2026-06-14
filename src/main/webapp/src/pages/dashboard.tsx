@@ -130,7 +130,19 @@ export default function Dashboard({
         .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
     const featuredTrip = activeTrips[0];
 
-    const totalExpensesPaidByMe = expensesPaidByMe?.reduce((acc, expense) => acc + expense.amount, 0) || 0;
+    const recentExpenses = [...(myExpenses ?? [])]
+        .sort((a, b) => new Date(b.dateOfExpense).getTime() - new Date(a.dateOfExpense).getTime())
+        .slice(0, 5);
+
+    const totalsPaidByMe = Object.entries(
+        (expensesPaidByMe ?? []).reduce<Record<string, number>>((acc, e) => {
+            acc[e.currency] = (acc[e.currency] ?? 0) + e.amount;
+            return acc;
+        }, {})
+    );
+    const totalSpentLabel = totalsPaidByMe.length === 0
+        ? '—'
+        : totalsPaidByMe.map(([cur, sum]) => `${sum.toFixed(2)} ${cur}`).join(' + ');
 
     const refreshTrips = async () => {
         const updatedTrips = await getMyTrips();
@@ -318,24 +330,35 @@ export default function Dashboard({
                         </div>
 
                         <div className="p-6">
-                            <div className="space-y-4">
-                                {myExpenses?.map((expense) => (
-                                    <div key={expense.id} className="flex items-center justify-between group">
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-100 group-hover:text-blue-300 transition-colors">
-                                                {expense.description}
-                                            </p>
-                                            <p className="text-xs text-gray-400">
-                                                Paid
-                                                by {expense.paidBy?.username} • {formatDate(expense.dateOfExpense)}
-                                            </p>
-                                        </div>
-                                        <span className="text-sm font-semibold text-gray-100">
-                                        ${expense.amount}
-                                    </span>
+                            {recentExpenses.length === 0 ? (
+                                <div className="flex items-center gap-3 rounded-lg bg-gray-700/30 px-4 py-3">
+                                    <div className="p-2 bg-gray-700/60 rounded-lg shrink-0">
+                                        <DollarSign className="w-5 h-5 text-gray-400"/>
                                     </div>
-                                ))}
-                            </div>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-gray-300">No expenses yet</p>
+                                        <p className="text-xs text-gray-500">Add your first expense to track spending.</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-gray-700/60">
+                                    {recentExpenses.map((expense) => (
+                                        <div key={expense.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 group">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium text-gray-100 truncate group-hover:text-blue-300 transition-colors">
+                                                    {expense.description}
+                                                </p>
+                                                <p className="text-xs text-gray-400 truncate">
+                                                    Paid by {expense.paidBy?.username} • {formatDate(expense.dateOfExpense)}
+                                                </p>
+                                            </div>
+                                            <span className="text-sm font-semibold text-gray-100 tabular-nums shrink-0">
+                                                {expense.amount.toFixed(2)} {expense.currency}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
                             <button
                                 onClick={handleOpenExpenseDialog}
@@ -359,7 +382,7 @@ export default function Dashboard({
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-300">Active Trips</p>
-                            <p className="text-2xl font-bold text-gray-100">{trips.length || 0}</p>
+                            <p className="text-2xl font-bold text-gray-100">{trips.filter(isActiveTrip).length}</p>
                         </div>
                     </div>
                 </div>
@@ -372,7 +395,7 @@ export default function Dashboard({
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-300">Total Spent</p>
-                            <p className="text-2xl font-bold text-gray-100">${totalExpensesPaidByMe || 0}</p>
+                            <p className="text-2xl font-bold text-gray-100">{totalSpentLabel}</p>
                         </div>
                     </div>
                 </div>

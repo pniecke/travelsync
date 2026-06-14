@@ -24,6 +24,18 @@ import kotlin.math.roundToLong
 
 private const val ROUNDING_TOLERANCE = 0.01
 
+// Receipts are user-uploaded; keep the accepted set tight to common photo and
+// document formats and cap the size so the upload endpoint can't be abused.
+private val ALLOWED_RECEIPT_TYPES = setOf(
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+    "application/pdf",
+)
+private const val MAX_RECEIPT_BYTES = 10L * 1024 * 1024
+
 @Service
 class ExpenseService(
     private val expenseMapper: ExpenseMapper,
@@ -35,6 +47,7 @@ class ExpenseService(
     private val userService: UserService,
     private val userMapper: UserMapper,
     private val notificationService: INotificationService,
+    private val receiptStorage: ReceiptStorageService,
 ) : IExpenseService {
 
     override fun getExpenses(
@@ -117,6 +130,46 @@ class ExpenseService(
     }
 
     @Transactional
+    override fun update(id: UUID, expense: Expense): Expense {
+        val existing = expenseRepository.findById(id)
+            .orElseThrow { NotFoundException("Expense $id not found") }
+        val current = currentUserEntity()
+        requireParticipant(existing.trip)
+        // Mutations are creator-only, mirroring delete(). The trip an expense
+        // belongs to is fixed; only its details and split can change.
+        if (existing.createdBy.id != current.id) {
+            throw ForbiddenException("Only the creator may edit this expense")
+        }
+
+        val payer = expense.paidBy?.id?.let { uid ->
+            userRepository.findById(uid)
+                .orElseThrow { NotFoundException("User $uid not found") }
+        }
+
+        existing.description = expense.description
+        existing.amount = expense.amount
+        existing.currency = expense.currency
+        existing.paidBy = payer
+        existing.dateOfExpense = expense.dateOfExpense
+
+        // Replace shares the same way replaceShares() does: delete-then-insert
+        // with an explicit flush so the unique (expense, user) constraint never
+        // sees the old and new rows at once.
+        val newShares = buildShareEntities(existing, existing.trip, expense.shares)
+        expenseShareRepository.deleteAllByExpense(existing)
+        expenseShareRepository.flush()
+        val savedShares = expenseShareRepository.saveAll(newShares).toList()
+
+        // Refresh the in-memory collection so the returned DTO reflects the new
+        // split (the lazy collection would otherwise resolve stale in this tx).
+        existing.shares.clear()
+        existing.shares.addAll(savedShares)
+
+        val saved = expenseRepository.save(existing)
+        return expenseMapper.toDto(saved)
+    }
+
+    @Transactional
     override fun delete(id: UUID) {
         val expense = expenseRepository.findById(id)
             .orElseThrow { NotFoundException("Expense $id not found") }
@@ -148,6 +201,76 @@ class ExpenseService(
         expenseShareRepository.flush()
         val savedShares = expenseShareRepository.saveAll(newShares).toList()
         return savedShares.map(expenseShareMapper::toDto)
+    }
+
+    @Transactional
+    override fun attachReceipt(
+        id: UUID,
+        filename: String?,
+        contentType: String?,
+        bytes: ByteArray,
+    ): Expense {
+        val expense = expenseRepository.findById(id)
+            .orElseThrow { NotFoundException("Expense $id not found") }
+        val current = currentUserEntity()
+        requireParticipant(expense.trip)
+        if (expense.createdBy.id != current.id) {
+            throw ForbiddenException("Only the creator may manage this expense's receipt")
+        }
+
+        if (bytes.isEmpty()) {
+            throw IllegalArgumentException("Receipt file is empty")
+        }
+        if (bytes.size > MAX_RECEIPT_BYTES) {
+            throw IllegalArgumentException("Receipt exceeds the 10 MB limit")
+        }
+        val type = contentType?.lowercase()
+        if (type == null || type !in ALLOWED_RECEIPT_TYPES) {
+            throw IllegalArgumentException(
+                "Unsupported receipt type. Allowed: JPEG, PNG, WebP, HEIC, PDF",
+            )
+        }
+
+        receiptStorage.store(id, bytes)
+        expense.receiptFilename = sanitizeFilename(filename)
+        expense.receiptContentType = type
+        return expenseMapper.toDto(expenseRepository.save(expense))
+    }
+
+    override fun getReceipt(id: UUID): ReceiptDownload {
+        val expense = expenseRepository.findById(id)
+            .orElseThrow { NotFoundException("Expense $id not found") }
+        requireParticipant(expense.trip)
+        val resource = receiptStorage.load(id)
+            ?: throw NotFoundException("No receipt attached to expense $id")
+        return ReceiptDownload(
+            resource = resource,
+            filename = expense.receiptFilename ?: "receipt",
+            contentType = expense.receiptContentType ?: "application/octet-stream",
+        )
+    }
+
+    @Transactional
+    override fun removeReceipt(id: UUID): Expense {
+        val expense = expenseRepository.findById(id)
+            .orElseThrow { NotFoundException("Expense $id not found") }
+        val current = currentUserEntity()
+        requireParticipant(expense.trip)
+        if (expense.createdBy.id != current.id) {
+            throw ForbiddenException("Only the creator may manage this expense's receipt")
+        }
+        receiptStorage.delete(id)
+        expense.receiptFilename = null
+        expense.receiptContentType = null
+        return expenseMapper.toDto(expenseRepository.save(expense))
+    }
+
+    private fun sanitizeFilename(filename: String?): String {
+        // Keep only the base name and a conservative character set; the value is
+        // echoed back in the Content-Disposition header on download.
+        val base = filename?.substringAfterLast('/')?.substringAfterLast('\\')?.trim()
+        if (base.isNullOrEmpty()) return "receipt"
+        return base.replace(Regex("[^A-Za-z0-9._-]"), "_").take(120)
     }
 
     private fun buildShareEntities(

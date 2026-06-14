@@ -34,3 +34,6 @@ build/
 ### VS Code ###
 .vscode/
 .DS_Store
+
+# Uploaded receipt files (local filesystem storage)
+uploads/

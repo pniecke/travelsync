@@ -1,7 +1,8 @@
 'use client'
 
-import {Calendar, Plus} from "lucide-react";
+import {Calendar, Paperclip, Plus} from "lucide-react";
 import {useState} from "react";
+import Link from "next/link";
 import {Expense, Trip, User} from "@/types";
 import ExpenseDialog from "@/components/ExpenseDialog";
 import {getExpenses} from "@/services/expenseService";
@@ -47,12 +48,18 @@ export default function TripExpensesTab({user, trip, initialExpenses}: TripExpen
                 ) : (
                     <div className="divide-y divide-gray-700">
                         {sorted.map(expense => (
-                            <div
+                            <Link
                                 key={expense.id}
-                                className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3"
+                                href={`/expenses/${expense.id}`}
+                                className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-3 -mx-2 px-2 rounded-lg hover:bg-gray-700/50 transition-colors"
                             >
                                 <div className="min-w-0">
-                                    <p className="font-medium text-gray-100 truncate">{expense.description}</p>
+                                    <p className="font-medium text-gray-100 truncate flex items-center gap-2">
+                                        {expense.description}
+                                        {expense.receiptFilename && (
+                                            <Paperclip className="w-3.5 h-3.5 text-gray-400 shrink-0"/>
+                                        )}
+                                    </p>
                                     <div className="flex items-center text-gray-400 text-sm mt-1">
                                         <Calendar className="w-3 h-3 mr-1 shrink-0"/>
                                         <span className="mr-3">{formatDate(expense.dateOfExpense)}</span>
@@ -67,7 +74,7 @@ export default function TripExpensesTab({user, trip, initialExpenses}: TripExpen
                                 }`}>
                                     {expense.amount.toFixed(2)} {expense.currency}
                                 </span>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 )}

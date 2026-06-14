@@ -31,6 +31,12 @@ class ExpenseController(
     override fun getExpense(@PathVariable id: UUID): ResponseEntity<Expense> =
         ResponseEntity.ok(expenseService.getById(id))
 
+    override fun updateExpense(
+        @PathVariable id: UUID,
+        @Valid @RequestBody expense: Expense,
+    ): ResponseEntity<Expense> =
+        ResponseEntity.ok(expenseService.update(id, expense))
+
     override fun deleteExpense(@PathVariable id: UUID): ResponseEntity<Unit> {
         expenseService.delete(id)
         return ResponseEntity.noContent().build()

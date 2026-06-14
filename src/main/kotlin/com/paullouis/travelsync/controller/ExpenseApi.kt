@@ -142,6 +142,29 @@ interface ExpenseApi {
 
     @Operation(
         tags = ["Expense",],
+        summary = "Update an existing expense (replaces its shares)",
+        operationId = "updateExpense",
+        description = """""",
+        responses = [
+            ApiResponse(responseCode = "200", description = "The updated expense", content = [Content(schema = Schema(implementation = Expense::class))]),
+            ApiResponse(responseCode = "400", description = "Invalid expense data (sum mismatch, non-participant, etc.)", content = [Content(schema = Schema(implementation = ApiError::class))]),
+            ApiResponse(responseCode = "403", description = "Forbidden"),
+            ApiResponse(responseCode = "404", description = "Expense not found")
+        ],
+        security = [ SecurityRequirement(name = "OidcAuth") ]
+    )
+    @RequestMapping(
+            method = [RequestMethod.PUT],
+            value = ["/expenses/{id}"],
+            produces = ["application/json"],
+            consumes = ["application/json"]
+    )
+    fun updateExpense(@Parameter(description = "", required = true) @PathVariable("id") id: java.util.UUID,@Parameter(description = "", required = true) @Valid @RequestBody expense: Expense): ResponseEntity<Expense> {
+        return ResponseEntity(HttpStatus.NOT_IMPLEMENTED)
+    }
+
+    @Operation(
+        tags = ["Expense",],
         summary = "Replace all shares for an expense",
         operationId = "updateExpenseShares",
         description = """""",
