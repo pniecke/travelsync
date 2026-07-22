@@ -43,6 +43,8 @@ class TestDataInitializer(
             tripRepository.save(
                 trip1
             )
+            // paul = user3, lili = user1 (mausi)
+            tripRepository.saveAll(getPaulAndLiliTrips(paul = user3, lili = user1))
         }
 
         var expense1 = getExpense("Ferry to Sardinia", 400.0, trip1, user1, user2)
@@ -138,6 +140,102 @@ class TestDataInitializer(
             createdBy = creator,
         )
     }
+
+    /**
+     * Trips involving paul and lili. paul creates and joins every trip; lili joins
+     * all except the paul-only trips (Valencia, San Marino, Split, Ibiza, Barcelona,
+     * Berlin). Statuses reflect the trip dates relative to the seeding date.
+     */
+    private fun getPaulAndLiliTrips(paul: UserEntity, lili: UserEntity): List<TripEntity> {
+        fun both() = mutableListOf(paul, lili)
+        fun paulOnly() = mutableListOf(paul)
+        return listOf(
+            trip(
+                "Teneriffa", "Tenerife, Spain",
+                LocalDateTime.of(2026, 7, 17, 10, 0), LocalDateTime.of(2026, 7, 26, 18, 0),
+                TripStatus.IN_PROGRESS, both(), paul,
+            ),
+            trip(
+                "Nizza", "Nice, France",
+                LocalDateTime.of(2026, 4, 5, 10, 0), LocalDateTime.of(2026, 4, 9, 18, 0),
+                TripStatus.COMPLETED, both(), paul,
+            ),
+            trip(
+                "VFB Stuttgart - HSV", "Stuttgart, Germany",
+                LocalDateTime.of(2026, 4, 12, 15, 30), null,
+                TripStatus.COMPLETED, both(), paul,
+            ),
+            trip(
+                "Mailand", "Milan, Italy",
+                LocalDateTime.of(2026, 2, 13, 10, 0), LocalDateTime.of(2026, 2, 15, 18, 0),
+                TripStatus.COMPLETED, both(), paul,
+            ),
+            trip(
+                "Valencia", "Valencia, Spain",
+                LocalDateTime.of(2025, 10, 22, 10, 0), LocalDateTime.of(2025, 10, 25, 18, 0),
+                TripStatus.COMPLETED, paulOnly(), paul,
+            ),
+            trip(
+                "San Marino Moto GP", "San Marino",
+                LocalDateTime.of(2025, 9, 11, 10, 0), LocalDateTime.of(2025, 9, 14, 18, 0),
+                TripStatus.COMPLETED, paulOnly(), paul,
+            ),
+            trip(
+                "Split", "Split, Croatia",
+                LocalDateTime.of(2025, 8, 27, 10, 0), LocalDateTime.of(2025, 9, 2, 18, 0),
+                TripStatus.COMPLETED, paulOnly(), paul,
+            ),
+            trip(
+                "Hamburg", "Hamburg, Germany",
+                LocalDateTime.of(2025, 8, 6, 10, 0), LocalDateTime.of(2025, 8, 11, 18, 0),
+                TripStatus.COMPLETED, both(), paul,
+            ),
+            trip(
+                "Ibiza", "Ibiza, Spain",
+                LocalDateTime.of(2025, 7, 23, 10, 0), LocalDateTime.of(2025, 7, 28, 18, 0),
+                TripStatus.COMPLETED, paulOnly(), paul,
+            ),
+            trip(
+                "Sardinien", "Sardinia, Italy",
+                LocalDateTime.of(2025, 7, 5, 10, 0), LocalDateTime.of(2025, 7, 14, 18, 0),
+                TripStatus.COMPLETED, both(), paul,
+            ),
+            trip(
+                "Barcelona", "Barcelona, Spain",
+                LocalDateTime.of(2025, 5, 23, 10, 0), LocalDateTime.of(2025, 5, 28, 18, 0),
+                TripStatus.COMPLETED, paulOnly(), paul,
+            ),
+            trip(
+                "Berlin", "Berlin, Germany",
+                LocalDateTime.of(2025, 4, 11, 10, 0), LocalDateTime.of(2025, 4, 15, 18, 0),
+                TripStatus.COMPLETED, paulOnly(), paul,
+            ),
+            trip(
+                "Domodossola", "Domodossola, Italy",
+                LocalDateTime.of(2025, 2, 28, 10, 0), LocalDateTime.of(2025, 3, 2, 18, 0),
+                TripStatus.COMPLETED, both(), paul,
+            ),
+        )
+    }
+
+    private fun trip(
+        name: String,
+        destination: String,
+        start: LocalDateTime,
+        end: LocalDateTime?,
+        status: TripStatus,
+        participants: MutableList<UserEntity>,
+        creator: UserEntity,
+    ): TripEntity = TripEntity(
+        name = name,
+        destination = destination,
+        startTime = start,
+        endTime = end,
+        status = status,
+        participants = participants,
+        expenses = mutableListOf(),
+        createdBy = creator,
+    )
 
     private fun getExpense(
         description: String,
