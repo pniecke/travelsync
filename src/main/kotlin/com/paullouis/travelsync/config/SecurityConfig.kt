@@ -6,12 +6,10 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
 import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
-import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
@@ -29,7 +27,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @EnableWebSecurity
 class SecurityConfig(
     private val customOidcUserService: CustomOidcUserService,
-    private val userDetailsService: UserDetailsService,
     @Value("\${app.frontend.url:http://localhost:3000}")
     private val frontendUrl: String,
     @Value("\${server.servlet.session.cookie.secure:false}")
@@ -41,11 +38,9 @@ class SecurityConfig(
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 
-    @Bean
-    fun authenticationProvider(): DaoAuthenticationProvider =
-        DaoAuthenticationProvider(userDetailsService).apply {
-            setPasswordEncoder(passwordEncoder())
-        }
+    // No explicit DaoAuthenticationProvider bean: with a UserDetailsService bean
+    // and a PasswordEncoder bean in context, Spring Security auto-wires an
+    // equivalent DaoAuthenticationProvider into the global AuthenticationManager.
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
