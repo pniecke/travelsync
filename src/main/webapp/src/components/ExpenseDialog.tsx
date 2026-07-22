@@ -84,11 +84,21 @@ export default function ExpenseDialog({
         if (isOpen) {
             setTripSearchQuery('');
             setTripSearchResults(trips);
-            setSelectedTrip(null);
             setIsSearching(false);
             setSplitMode(ExpenseShareType.Equal);
-            setSplitParticipantIds([]);
             setSplitInputs({});
+
+            // Pre-select the trip when there's only one to choose from
+            // (e.g. when creating an expense from a trip detail page).
+            const onlyTrip = trips.length === 1 ? trips[0] : null;
+            if (onlyTrip?.participants && onlyTrip.participants.length > 0) {
+                setSelectedTrip(onlyTrip);
+                setExpenseForm(prev => ({...prev, paidBy: onlyTrip.participants[0]}));
+                setSplitParticipantIds(onlyTrip.participants.map(p => p.id ?? '').filter(Boolean));
+            } else {
+                setSelectedTrip(null);
+                setSplitParticipantIds([]);
+            }
         }
     }, [isOpen, trips]);
 
