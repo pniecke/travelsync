@@ -1,6 +1,6 @@
 import type {AppProps} from 'next/app';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import '@/app/globals.css';
+import '@/styles/globals.css';
 import {AuthProvider} from '@/context/AuthProvider';
 import {AnimatedBackground} from "@/components/AnimatedBackground";
 import NavBar from "@/components/NavBar";
