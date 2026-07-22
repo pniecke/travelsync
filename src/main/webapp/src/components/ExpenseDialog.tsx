@@ -1,7 +1,7 @@
 'use client'
 
-import {Plus, Search, X} from "lucide-react";
-import {useEffect, useMemo, useState} from "react";
+import {Paperclip, Plus, Search, Upload, X} from "lucide-react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {
     Currency,
     Expense,
@@ -10,7 +10,7 @@ import {
     Trip,
     User,
 } from "@/types";
-import {createExpense} from "@/services/expenseService";
+import {createExpense, uploadReceipt} from "@/services/expenseService";
 import SplitEditor from "@/components/SplitEditor";
 import {
     computeShares,
@@ -18,6 +18,19 @@ import {
     summarizeSplit,
     validateSplit,
 } from "@/utils/expenseShares";
+
+// Mirrors the server-side rules in ExpenseService.attachReceipt so we can reject
+// bad files before creating the expense (avoids a saved expense with a failed
+// receipt upload).
+const ALLOWED_RECEIPT_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+    'application/pdf',
+];
+const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
 
 interface ExpenseDialogProps {
     isOpen: boolean;
@@ -58,6 +71,12 @@ export default function ExpenseDialog({
     const [splitParticipantIds, setSplitParticipantIds] = useState<string[]>([]);
     const [splitInputs, setSplitInputs] = useState<SplitInputs>({});
 
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    // When the expense is saved but the receipt upload fails, we keep the id so a
+    // retry re-uploads the receipt instead of creating a duplicate expense.
+    const [createdExpenseId, setCreatedExpenseId] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         if (!tripSearchQuery.trim()) {
             setTripSearchResults(trips);
@@ -87,6 +106,9 @@ export default function ExpenseDialog({
             setIsSearching(false);
             setSplitMode(ExpenseShareType.Equal);
             setSplitInputs({});
+            setReceiptFile(null);
+            setCreatedExpenseId(null);
+            setError(null);
 
             // Pre-select the trip when there's only one to choose from
             // (e.g. when creating an expense from a trip detail page).
@@ -167,6 +189,21 @@ export default function ExpenseDialog({
         setSplitInputs(next);
     };
 
+    const handleReceiptPicked = (file: File | undefined) => {
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (!file) return;
+        if (!ALLOWED_RECEIPT_TYPES.includes(file.type.toLowerCase())) {
+            setError("Unsupported receipt type. Use JPEG, PNG, WebP, HEIC or PDF.");
+            return;
+        }
+        if (file.size > MAX_RECEIPT_BYTES) {
+            setError("Receipt exceeds the 10 MB limit.");
+            return;
+        }
+        setError(null);
+        setReceiptFile(file);
+    };
+
     const validateForm = () => {
         if (!expenseForm.description) {
             setError("Please enter a description");
@@ -199,19 +236,32 @@ export default function ExpenseDialog({
             return;
         }
         setIsSubmitting(true);
+        // Reuse the id from a previous partial success (expense saved, receipt
+        // failed) so a retry only re-uploads the receipt. Hoisted so the catch
+        // can tell "create failed" from "created but receipt failed".
+        let expenseId = createdExpenseId;
         try {
-            const newExpense: Omit<Expense, 'id'> = {
-                description: expenseForm.description,
-                amount: Number(expenseForm.amount),
-                tripId: selectedTrip.id,
-                createdBy: user,
-                currency: expenseForm.currency,
-                paidBy: expenseForm.paidBy || user,
-                dateOfExpense: expenseForm.dateOfExpense || new Date().toISOString().slice(0, 16),
-                shares: computedShares,
-            };
+            if (!expenseId) {
+                const newExpense: Omit<Expense, 'id'> = {
+                    description: expenseForm.description,
+                    amount: Number(expenseForm.amount),
+                    tripId: selectedTrip.id,
+                    createdBy: user,
+                    currency: expenseForm.currency,
+                    paidBy: expenseForm.paidBy || user,
+                    dateOfExpense: expenseForm.dateOfExpense || new Date().toISOString().slice(0, 16),
+                    shares: computedShares,
+                };
 
-            await createExpense([newExpense]);
+                const created = await createExpense([newExpense]);
+                expenseId = created[0]?.id ?? null;
+                setCreatedExpenseId(expenseId);
+            }
+
+            if (receiptFile && expenseId) {
+                await uploadReceipt(expenseId, receiptFile);
+            }
+
             await onExpenseCreated();
 
             setExpenseForm({
@@ -228,9 +278,18 @@ export default function ExpenseDialog({
             setSplitMode(ExpenseShareType.Equal);
             setSplitParticipantIds([]);
             setSplitInputs({});
+            setReceiptFile(null);
+            setCreatedExpenseId(null);
             onClose();
         } catch (err) {
-            setError("Failed to create expense. Please try again.");
+            const apiMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            if (expenseId) {
+                // The expense is saved; only the receipt upload failed. Clicking
+                // "Create Expense" again retries just the upload.
+                setError(apiMessage || "Expense saved, but the receipt upload failed. Try again, or add it later from the expense's page.");
+            } else {
+                setError(apiMessage || "Failed to create expense. Please try again.");
+            }
             console.error("Error creating expense:", err);
         } finally {
             setIsSubmitting(false);
@@ -314,6 +373,51 @@ export default function ExpenseDialog({
                                     ))}
                                 </select>
                             </div>
+                        </div>
+
+                        {/* Receipt Section */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                                Receipt <span className="text-gray-500 font-normal">(optional)</span>
+                            </label>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+                                className="hidden"
+                                onChange={(e) => handleReceiptPicked(e.target.files?.[0])}
+                            />
+                            {receiptFile ? (
+                                <div className="flex items-center justify-between gap-3 bg-gray-700 rounded-lg px-3 py-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <Paperclip className="w-4 h-4 text-blue-400 shrink-0"/>
+                                        <span className="text-sm text-gray-100 truncate">{receiptFile.name}</span>
+                                        <span className="text-xs text-gray-500 shrink-0">
+                                            {(receiptFile.size / (1024 * 1024)).toFixed(1)} MB
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setReceiptFile(null)}
+                                        className="text-gray-400 hover:text-gray-200 shrink-0"
+                                        aria-label="Remove receipt"
+                                    >
+                                        <X className="w-4 h-4"/>
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-gray-600 hover:border-blue-500 rounded-lg text-gray-400 hover:text-gray-200 text-sm transition-colors"
+                                >
+                                    <Upload className="w-4 h-4"/>
+                                    Attach a receipt
+                                </button>
+                            )}
+                            <p className="mt-1 text-xs text-gray-500">
+                                JPEG, PNG, WebP, HEIC or PDF · up to 10 MB
+                            </p>
                         </div>
 
                         {/* Trip Selection Section */}
